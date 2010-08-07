@@ -44,7 +44,8 @@ struct _queue_node {
     void *next;
 
     void *items[__QUEUE_NITEMS];
-    size_t used;
+    uint8_t offset;
+    uint8_t used;
 };
 
 /* Default stdlib allocator */
@@ -70,7 +71,8 @@ static queue_node_t *__queue_node_alloc (queue_t *queue) {
     }
 
     node->next = NULL;
-    node->used = 0;
+    node->offset = 0U;
+    node->used = 0U;
 
     return(node);
 }
@@ -146,14 +148,16 @@ int queue_push (queue_t *queue,
                 void *element)
 {
     queue_node_t *node;
+    void *x;
 
     if (queue->head == NULL) {
+        /* Lazy allocation of queue first item */
         if ((queue->head = __queue_node_alloc(queue)) == NULL)
             return(-1);
 
         queue->tail = queue->head;
-    } else  if (queue->nitems == queue->circular && queue->nitems > 0) {
-        void *x;
+    } else if (queue->nitems == queue->circular && queue->nitems > 0) {
+        /* Circular queue if full, pop one element */
         x = queue_pop(queue);
         if (queue->item_free != NULL)
             queue->item_free(queue->user_data, x);
@@ -161,15 +165,25 @@ int queue_push (queue_t *queue,
 
     node = queue->tail;
     if (node->used == __QUEUE_NITEMS) {
-        if ((node = __queue_node_alloc(queue)) == NULL)
-            return(-2);
+        if (node->offset > 0) {
+            /* Lazy move back to offet 0 */
+            x = node->items + node->offset;
+            memcpy(x, x + 1, node->used * sizeof(void *));
+            node->offset = 0;
+        } else {
+            /* Tail Node is full, we need another one */
+            if ((node = __queue_node_alloc(queue)) == NULL)
+                return(-2);
 
-        queue->tail->next = node;
-        queue->tail = node;
+            queue->tail->next = node;
+            queue->tail = node;
+        }
     }
 
-    node->items[node->used++] = element;
+    /* Add Item to the queue */
+    node->items[node->offset + node->used] = element;
     queue->nitems++;
+    node->used++;
 
     return(0);
 }
@@ -182,10 +196,9 @@ void *queue_pop (queue_t *queue) {
         return(NULL);
 
     node = queue->head;
-    node->used--;
-    element = node->items[0];
-    memmove(node->items, node->items + 1, node->used * sizeof(void *));
+    element = node->items[node->offset++];
     queue->nitems--;
+    node->used--;
 
     if (node->used == 0) {
         queue->head = node->next;
