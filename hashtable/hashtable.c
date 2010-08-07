@@ -158,7 +158,8 @@ hashtable_t *hashtable_alloc (hashtable_t *table,
                               hashtable_hash_t hash_func,
                               mmallocator_t *allocator,
                               mmfree_t key_free_func,
-                              mmfree_t value_free_func)
+                              mmfree_t value_free_func,
+                              void *user_data)
 {
     size_t real;
 
@@ -180,6 +181,7 @@ hashtable_t *hashtable_alloc (hashtable_t *table,
     table->pool = NULL;
     table->pool_size = 0U;
 
+    table->user_data = user_data;
     table->hash_func = hash_func;
     table->keycmp_func = key_cmp_func;
     table->key_free_func = key_free_func;

@@ -54,7 +54,7 @@ static void __foreach (void *user_data, const void *key, void *value) {
 int main (int argc, char **argv) {
     hashtable_t table;
 
-    hashtable_alloc(&table, 6, __keycmp, __hash, NULL, NULL, NULL);
+    hashtable_alloc(&table, 6, __keycmp, __hash, NULL, NULL, NULL, NULL);
     printf("HT SIZE: %u\n", table.size);
     printf("HT USED: %u\n", table.used);
 

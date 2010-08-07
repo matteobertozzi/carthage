@@ -76,7 +76,8 @@ hashtable_t *hashtable_alloc    (hashtable_t *table,
                                  hashtable_hash_t hash_func,
                                  mmallocator_t *allocator,
                                  mmfree_t key_free_func,
-                                 mmfree_t value_free_func);
+                                 mmfree_t value_free_func,
+                                 void *user_data);
 void         hashtable_free     (hashtable_t *table);
 
 int          hashtable_clear    (hashtable_t *table);
