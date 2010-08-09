@@ -56,6 +56,23 @@ static mmallocator_t __default_mmallocator = {
     .user_data = NULL,
 };
 
+static size_t __nbucket_roundup (size_t size) {
+    if (size < 8U)
+        return(8U);
+
+    size--;
+    size |= size >> 1;
+    size |= size >> 2;
+    size |= size >> 4;
+    size |= size >> 8;
+    size |= size >> 16;
+#if defined(__LP64__)
+    size |= size >> 32;
+#endif
+    size++;
+    return(size);
+}
+
 static hashnode_t *__hashnode_alloc (hashtable_t *table,
                                      void *key,
                                      void *value)
@@ -122,9 +139,7 @@ static int __hashtable_resize (hashtable_t *table,
     size_t size;
 
     /* Round up to size a power of two */
-    size = new_size;
-    for (new_size = 8; new_size < size; new_size <<= 1)
-        continue;
+    new_size = __nbucket_roundup(new_size);
 
     /* Store old bucket and sizes */
     size = table->size;
@@ -137,7 +152,7 @@ static int __hashtable_resize (hashtable_t *table,
         return(-1);
 
     /* Fill new bucket with old nodes */
-    memset(table->bucket, 0, __bucket_size(size));
+    memset(table->bucket, 0, __bucket_size(new_size));
     while (used--) {
         for (p = bucket[used]; p != NULL; p = next) {
             next = p->next;
@@ -161,22 +176,19 @@ hashtable_t *hashtable_alloc (hashtable_t *table,
                               mmfree_t value_free_func,
                               void *user_data)
 {
-    size_t real;
-
     /* Round up to size a power of two */
-    for (real = 8; real < size; real <<= 1)
-        continue;
+    size = __nbucket_roundup(size);
 
     /* Init Allocator */
     table->alk = (allocator != NULL) ? allocator : &__default_mmallocator;
 
     /* Allocate Bucket */
-    if ((table->bucket = __bucket_alloc(table, real)) == NULL)
+    if ((table->bucket = __bucket_alloc(table, size)) == NULL)
         return(NULL);
 
     memset(table->bucket, 0, __bucket_size(size));
     table->used = 0U;
-    table->size = real;
+    table->size = size;
 
     table->pool = NULL;
     table->pool_size = 0U;
@@ -224,6 +236,8 @@ int hashtable_insert (hashtable_t *table,
         size += (size < 64) ? (size >> 1) : (size);
         if (__hashtable_resize(table, size))
             return(-1);
+
+        node = __hashnode_lookup(table, key);
     }
 
     /* Allocate new node for this entry */

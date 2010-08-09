@@ -55,6 +55,23 @@ static mmallocator_t __default_mmallocator = {
     .user_data = NULL,
 };
 
+static size_t __nbucket_roundup (size_t size) {
+    if (size < 8U)
+        return(8U);
+
+    size--;
+    size |= size >> 1;
+    size |= size >> 2;
+    size |= size >> 4;
+    size |= size >> 8;
+    size |= size >> 16;
+#if defined(__LP64__)
+    size |= size >> 32;
+#endif
+    size++;
+    return(size);
+}
+
 static setnode_t *__setnode_alloc (set_t *set,
                                    void *key)
 {
@@ -116,9 +133,7 @@ static int __set_resize (set_t *set,
     size_t size;
 
     /* Round up to size a power of two */
-    size = new_size;
-    for (new_size = 8; new_size < size; new_size <<= 1)
-        continue;
+    new_size = __nbucket_roundup(new_size);
 
     /* Store old bucket and sizes */
     size = set->size;
@@ -131,7 +146,7 @@ static int __set_resize (set_t *set,
         return(-1);
 
     /* Fill new bucket with old nodes */
-    memset(set->bucket, 0, __bucket_size(size));
+    memset(set->bucket, 0, __bucket_size(new_size));
     while (used--) {
         for (p = bucket[used]; p != NULL; p = next) {
             next = p->next;
@@ -154,22 +169,19 @@ set_t *set_alloc (set_t *set,
                   mmfree_t key_free_func,
                   void *user_data)
 {
-    size_t real;
-
     /* Round up to size a power of two */
-    for (real = 8; real < size; real <<= 1)
-        continue;
+    size = __nbucket_roundup(size);
 
     /* Init Allocator */
     set->alk = (allocator != NULL) ? allocator : &__default_mmallocator;
 
     /* Allocate Bucket */
-    if ((set->bucket = __bucket_alloc(set, real)) == NULL)
+    if ((set->bucket = __bucket_alloc(set, size)) == NULL)
         return(NULL);
 
     memset(set->bucket, 0, __bucket_size(size));
     set->used = 0U;
-    set->size = real;
+    set->size = size;
 
     set->pool = NULL;
     set->pool_size = 0U;
@@ -211,6 +223,8 @@ int set_insert (set_t *set,
         size += (size < 64) ? (size >> 1) : (size);
         if (__set_resize(set, size))
             return(-1);
+
+        node = __setnode_lookup(set, key);
     }
 
     /* Allocate new node for this entry */

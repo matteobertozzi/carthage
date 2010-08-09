@@ -56,6 +56,23 @@ static mmallocator_t __default_mmallocator = {
     .user_data = NULL,
 };
 
+static size_t __nbucket_roundup (size_t size) {
+    if (size < 8U)
+        return(8U);
+
+    size--;
+    size |= size >> 1;
+    size |= size >> 2;
+    size |= size >> 4;
+    size |= size >> 8;
+    size |= size >> 16;
+#if defined(__LP64__)
+    size |= size >> 32;
+#endif
+    size++;
+    return(size);
+}
+
 static bagnode_t *__bagnode_alloc (bag_t *bag,
                                    void *key)
 {
@@ -118,9 +135,7 @@ static int __bag_resize (bag_t *bag,
     size_t size;
 
     /* Round up to size a power of two */
-    size = new_size;
-    for (new_size = 8; new_size < size; new_size <<= 1)
-        continue;
+    new_size = __nbucket_roundup(new_size);
 
     /* Store old bucket and sizes */
     size = bag->size;
@@ -133,7 +148,7 @@ static int __bag_resize (bag_t *bag,
         return(-1);
 
     /* Fill new bucket with old nodes */
-    memset(bag->bucket, 0, __bucket_size(size));
+    memset(bag->bucket, 0, __bucket_size(new_size));
     while (used--) {
         for (p = bucket[used]; p != NULL; p = next) {
             next = p->next;
@@ -156,22 +171,19 @@ bag_t *bag_alloc (bag_t *bag,
                   mmfree_t key_free_func,
                   void *user_data)
 {
-    size_t real;
-
     /* Round up to size a power of two */
-    for (real = 8; real < size; real <<= 1)
-        continue;
+    size = __nbucket_roundup(size);
 
     /* Init Allocator */
     bag->alk = (allocator != NULL) ? allocator : &__default_mmallocator;
 
     /* Allocate Bucket */
-    if ((bag->bucket = __bucket_alloc(bag, real)) == NULL)
+    if ((bag->bucket = __bucket_alloc(bag, size)) == NULL)
         return(NULL);
 
     memset(bag->bucket, 0, __bucket_size(size));
     bag->used = 0U;
-    bag->size = real;
+    bag->size = size;
 
     bag->pool = NULL;
     bag->pool_size = 0U;
@@ -215,6 +227,8 @@ int bag_insert (bag_t *bag,
         size += (size < 64) ? (size >> 1) : (size);
         if (__bag_resize(bag, size))
             return(-1);
+
+        node = __bagnode_lookup(bag, key);
     }
 
     /* Allocate new node for this entry */
