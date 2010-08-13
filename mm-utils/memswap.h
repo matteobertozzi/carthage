@@ -1,4 +1,4 @@
-/* [ memswap.h ] - Memory Copy
+/* [ memswap.h ] - Memory Swap
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
