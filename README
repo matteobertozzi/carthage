@@ -13,9 +13,10 @@ and Utils written in C.
 
  - Memory Pool
  - COW Mem Block
- - Hash Table
- - Fast memcpy(), memset(), memcmp()
+ - Hash Table, Set, Bag, Queue
+ - Fast memcpy(), memset(), memcmp(), memswap()
  - Worker Queue (pthread)
+ - Sort/Merge Utils
  - ...
 
 Copyright (c) 2010, Matteo Bertozzi
