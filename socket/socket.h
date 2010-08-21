@@ -59,11 +59,13 @@ int     socket_udp_recv         (int sock,
                                  int n,
                                  int flags);
 
+int     socket_address          (int sock,
+                                 struct sockaddr_storage *addr);
 
-char *  socket_address          (char *buffer,
+char *  socket_str_address      (char *buffer,
                                  size_t n,
                                  const struct sockaddr *address);
-char *  socket_address_info     (char *buffer,
+char *  socket_str_address_info (char *buffer,
                                  size_t n,
                                  const struct addrinfo *address);
 

@@ -52,7 +52,7 @@ int main (int argc, char **argv) {
             continue;
         }
 
-        socket_address(ip, INET6_ADDRSTRLEN, (const struct sockaddr *)&addr);
+        socket_str_address(ip, INET6_ADDRSTRLEN, (const struct sockaddr *)&addr);
         printf("Recv %s: %s\n", ip, buffer);
     }
 

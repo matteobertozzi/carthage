@@ -273,9 +273,17 @@ int socket_udp_recv (int sock,
 /* ===========================================================================
  *  Socket Address Related
  */
-char *socket_address (char *buffer,
-                      size_t n,
-                      const struct sockaddr *address)
+int socket_address (int sock,
+                    struct sockaddr_storage *address)
+{
+    socklen_t addr_size;
+    addr_size = sizeof(struct sockaddr_storage);
+    return(getpeername(sock, (struct sockaddr *)address, &addr_size));
+}
+
+char *socket_str_address (char *buffer,
+                          size_t n,
+                          const struct sockaddr *address)
 {
     const void *addr;
 
@@ -290,9 +298,9 @@ char *socket_address (char *buffer,
     return(buffer);
 }
 
-char *socket_address_info (char *buffer,
-                           size_t n,
-                           const struct addrinfo *info)
+char *socket_str_address_info (char *buffer,
+                               size_t n,
+                               const struct addrinfo *info)
 {
     const void *addr;
 
