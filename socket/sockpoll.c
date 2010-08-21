@@ -1,4 +1,3 @@
-#include <sys/epoll.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <string.h>
@@ -55,6 +54,9 @@ int sockpoll_select (int socket,
     return(0);
 }
 
+#ifdef HAS_SOCKPOLL_EPOLL
+#include <sys/epoll.h>
+
 int sockpoll_epoll (int socket,
                     socket_accept_t accept_f,
                     socket_read_t read_f,
@@ -78,13 +80,15 @@ int sockpoll_epoll (int socket,
 
     if (epoll_ctl(epld, EPOLL_CTL_ADD, socket, &event) < 0) {
         perror("epoll_ctl()");
+        close(epld);
         return(-2);
     }
 
     for (;;) {
         if ((nfds = epoll_wait(epld, events, 32, -1)) < 0) {
             perror("epoll_wait()");
-            return(-1);
+            close(epld);
+            return(-3);
         }
 
         for (n = 0; n < nfds; ++n) {
@@ -103,7 +107,8 @@ int sockpoll_epoll (int socket,
 
                 if (epoll_ctl(epld, EPOLL_CTL_ADD, client, &event) < 0) {
                     perror("epoll_ctl()");
-                    return(-2);
+                    close(epld);
+                    return(-4);
                 }
             } else if (!read_f || read_f(events[n].data.fd, user_data) < 0) {
                 epoll_ctl(epld, EPOLL_CTL_DEL, events[n].data.fd, NULL);
@@ -112,6 +117,80 @@ int sockpoll_epoll (int socket,
         }
     }
 
+    close(epld);
+
     return(0);
 }
+#endif /* HAS_SOCKPOLL_EPOLL */
+
+#ifdef HAS_SOCKPOLL_KQUEUE
+#include <sys/event.h>
+
+int sockpoll_kqueue (int socket,
+                     socket_accept_t accept_f,
+                     socket_read_t read_f,
+                     void *user_data)
+{
+    struct sockaddr_storage addr;
+    struct kevent events[32];
+    struct kevent event;
+    int n, nevents;
+    int client;
+    int kq;
+
+    if ((kq = kqueue()) < 0) {
+        perror("kqueue()");
+        return(-1);
+    }
+
+    memset(&event, 0, sizeof(struct kevent));
+    event.ident = socket;
+    event.filter = EVFILT_READ;
+    event.flags = EV_ADD | EV_ENABLE;
+
+    if (kevent(kq, &event, 1, NULL, 0, NULL) < 0) {
+        perror("kevent()");
+        close(kq);
+        return(-2);
+    }
+
+    for (;;) {
+        if ((nevents = kevent(kq, NULL, 0, events, 32, NULL)) < 0) {
+            perror("kevent()");
+            close(kq);
+            return(-3);
+        }
+
+        for (n = 0; n < nevents; ++n) {
+            if (events[n].ident == socket) {
+                if ((client = socket_tcp_accept(socket, &addr)) < 0)
+                    continue;
+
+                if (accept_f && accept_f(client, &addr, user_data) < 0) {
+                    close(client);
+                    continue;
+                }
+
+                event.ident = client;
+                event.filter = EVFILT_READ;
+                event.flags = EV_ADD | EV_ENABLE;
+                if (kevent(kq, &event, 1, NULL, 0, NULL) < 0) {
+                    perror("kevent()");
+                    close(kq);
+                    return(-4);
+                }
+            } else if (!read_f || read_f(events[n].ident, user_data) < 0) {
+                event.ident = events[n].ident;
+                event.filter = EVFILT_READ;
+                event.flags = EV_DELETE | EV_DISABLE;
+                kevent(kq, &event, 1, NULL, 0, NULL);
+                close(events[n].ident);
+            }
+        }
+    }
+
+    close(kq);
+    return(0);
+}
+#endif /* HAS_SOCKPOLL_KQUEUE */
 

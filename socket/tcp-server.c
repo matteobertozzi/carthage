@@ -78,9 +78,14 @@ int main (int argc, char **argv) {
     socket_str_address(ip, INET6_ADDRSTRLEN, (const struct sockaddr *)&addr);
     printf("Server is Listening on %s\n", ip);
 
-#if 0
+#if defined(HAS_SOCKPOLL_EPOLL)
+    printf("Using epoll...\n");
     sockpoll_epoll(sock, __accept, __read, NULL);
+#elif defined(HAS_SOCKPOLL_KQUEUE)
+    printf("Using kqueue...\n");
+    sockpoll_kqueue(sock, __accept, __read, NULL);
 #else
+    printf("Using select...\n");
     sockpoll_select(sock, __accept, __read, NULL);
 #endif
     close(sock);
