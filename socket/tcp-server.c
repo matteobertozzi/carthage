@@ -80,13 +80,13 @@ int main (int argc, char **argv) {
 
 #if defined(HAS_SOCKPOLL_EPOLL)
     printf("Using epoll...\n");
-    sockpoll_epoll(sock, __accept, __read, NULL);
+    sockpoll_epoll(sock, __accept, __read, NULL, NULL);
 #elif defined(HAS_SOCKPOLL_KQUEUE)
     printf("Using kqueue...\n");
-    sockpoll_kqueue(sock, __accept, __read, NULL);
+    sockpoll_kqueue(sock, __accept, __read, NULL, NULL);
 #else
     printf("Using select...\n");
-    sockpoll_select(sock, __accept, __read, NULL);
+    sockpoll_select(sock, __accept, __read, NULL, NULL);
 #endif
     close(sock);
 

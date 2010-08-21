@@ -11,6 +11,7 @@
 int sockpoll_select (int socket,
                      socket_accept_t accept_f,
                      socket_read_t read_f,
+                     int *is_looping,
                      void *user_data)
 {
     struct sockaddr_storage addr;
@@ -22,7 +23,7 @@ int sockpoll_select (int socket,
     FD_SET(socket, &fds);
     sdmax = socket;
 
-    for (;;) {
+    while ((is_looping != NULL) ? (*is_looping) : 1) {
         memcpy(&rfds, &fds, sizeof(fd_set));
         if (select(sdmax + 1, &rfds, NULL, NULL, NULL) < 0) {
             perror("select()");
@@ -60,6 +61,7 @@ int sockpoll_select (int socket,
 int sockpoll_epoll (int socket,
                     socket_accept_t accept_f,
                     socket_read_t read_f,
+                    int *is_looping,
                     void *user_data)
 {
     struct epoll_event events[32];
@@ -84,7 +86,7 @@ int sockpoll_epoll (int socket,
         return(-2);
     }
 
-    for (;;) {
+    while ((is_looping != NULL) ? (*is_looping) : 1) {
         if ((nfds = epoll_wait(epld, events, 32, -1)) < 0) {
             perror("epoll_wait()");
             close(epld);
@@ -129,6 +131,7 @@ int sockpoll_epoll (int socket,
 int sockpoll_kqueue (int socket,
                      socket_accept_t accept_f,
                      socket_read_t read_f,
+                     int *is_looping,
                      void *user_data)
 {
     struct sockaddr_storage addr;
@@ -153,8 +156,8 @@ int sockpoll_kqueue (int socket,
         close(kq);
         return(-2);
     }
-
-    for (;;) {
+    
+    while ((is_looping != NULL) ? (*is_looping) : 1) {
         if ((nevents = kevent(kq, NULL, 0, events, 32, NULL)) < 0) {
             perror("kevent()");
             close(kq);

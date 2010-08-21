@@ -12,12 +12,14 @@ typedef int (*socket_read_t)   (int sock,
 int     sockpoll_select     (int socket,
                              socket_accept_t accept_f,
                              socket_read_t read_f,
+                             int *is_looping,
                              void *user_data);
 
 #ifdef HAS_SOCKPOLL_EPOLL
 int     sockpoll_epoll      (int socket,
                              socket_accept_t accept_f,
                              socket_read_t read_f,
+                             int *is_looping,
                              void *user_data);
 #endif /* HAS_SOCKPOLL_EPOLL */
 
@@ -25,6 +27,7 @@ int     sockpoll_epoll      (int socket,
 int     sockpoll_kqueue     (int socket,
                              socket_accept_t accept_f,
                              socket_read_t read_f,
+                             int *is_looping,
                              void *user_data);
 #endif /* HAS_SOCKPOLL_KQUEUE */
 
