@@ -271,6 +271,81 @@ int socket_udp_recv (int sock,
 }
 
 /* ===========================================================================
+ *  UNIX Socket Related
+ */
+#ifdef HAS_UNIX_SOCKET
+
+#include <sys/un.h>
+
+int socket_unix_connect (const char *filepath) {
+    struct sockaddr_un addr;
+    socklen_t addrlen;
+    int sock;
+
+    if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+        perror("socket()");
+        return(-1);
+    }
+
+    addr.sun_family = AF_UNIX;
+    strcpy(addr.sun_path, filepath);
+
+    addrlen = (strlen(addr.sun_path) + sizeof(addr.sun_family));
+    if (connect(sock, (struct sockaddr *)&addr, addrlen) < 0) {
+        perror("connect()");
+        close(sock);
+        return(-2);
+    }
+
+    return(sock);
+}
+
+int socket_unix_bind (const char *filepath) {
+    struct sockaddr_un addr;
+    socklen_t addrlen;
+    int sock;
+
+    if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+        perror("socket()");
+        return(-2);
+    }
+
+    addr.sun_family = AF_UNIX;
+    strcpy(addr.sun_path, filepath);
+
+    addrlen = (strlen(addr.sun_path) + sizeof(addr.sun_family));
+    if (bind(sock, (struct sockaddr *)&addr, addrlen) < 0) {
+        perror("bind()");
+        close(sock);
+        return(-3);
+    }
+
+    if (listen(sock, __LISTEN_BACKLOG) < 0) {
+        perror("listen()");
+        close(sock);
+        return(-4);
+    }
+
+    return(sock);
+}
+
+int socket_unix_accept (int socket) {
+    struct sockaddr_un address;
+    socklen_t addr_size;
+    int sd;
+
+    addr_size = sizeof(struct sockaddr_un);
+    if ((sd = accept(socket, (struct sockaddr *)&address, &addr_size)) < 0) {
+        perror("accept()");
+        return(-1);
+    }
+
+    return(sd);
+}
+
+#endif /* HAS_UNIX_SOCKET */
+
+/* ===========================================================================
  *  Socket Address Related
  */
 int socket_address (int sock,

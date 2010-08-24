@@ -31,67 +31,23 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#include "sockpoll.h"
 #include "socket.h"
 
-static int __accept (int socket,
-                     void *user_data)
-{
-    struct sockaddr_storage address;
-    char ip[INET6_ADDRSTRLEN];
-    int client;
-
-    if ((client = socket_tcp_accept(socket, &address)) < 0)
-        return(-1);
-
-    socket_str_address(ip, INET6_ADDRSTRLEN, (const struct sockaddr *)&address);
-    printf(" - Listener is ready to accept %d %s.\n", client, ip);
-
-    return(client);
-}
-
-static int __read (int sock,
-                   void *user_data)
-{
-    char buffer[1024];
+int main (int argc, char **argv) {
+    char buffer[64];
+    int sock;
     ssize_t n;
 
-    memset(buffer, 0, 1024);
-    if ((n = recv(sock, buffer, 1024, 0)) < 1) {
-        printf(" - %d is ready to leave.\n", sock);
-        return(-1);
-    }
-
-    printf(" - %d is ready to read %d.\n", sock, n);
-    printf("   %s\n", buffer);
-
-    send(sock, "OK, Received!\n", 14, 0);
-
-    return(0);
-}
-
-
-int main (int argc, char **argv) {
-    struct sockaddr_storage addr;
-    char ip[INET6_ADDRSTRLEN];
-    int sock;
-
-    if ((sock = socket_tcp_bind(NULL, "8080", &addr)) < 0)
+    if ((sock = socket_unix_connect("test.sock")) < 0)
         return(1);
 
-    socket_str_address(ip, INET6_ADDRSTRLEN, (const struct sockaddr *)&addr);
-    printf("Server is Listening on %s\n", ip);
+    n = send(sock, "Hello Server\n", 13, 0);
+    printf("Send %d\n", n);
 
-#if defined(HAS_SOCKPOLL_EPOLL)
-    printf("Using epoll...\n");
-    sockpoll_epoll(sock, __accept, __read, NULL, NULL);
-#elif defined(HAS_SOCKPOLL_KQUEUE)
-    printf("Using kqueue...\n");
-    sockpoll_kqueue(sock, __accept, __read, NULL, NULL);
-#else
-    printf("Using select...\n");
-    sockpoll_select(sock, __accept, __read, NULL, NULL);
-#endif
+    memset(buffer, 0, 64);
+    n = recv(sock, buffer, 64, 0);
+    printf("RECV %d '%s'\n", n, buffer);
+
     close(sock);
 
     return(0);

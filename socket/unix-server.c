@@ -34,24 +34,17 @@
 #include "sockpoll.h"
 #include "socket.h"
 
-static int __accept (int socket,
-                     void *user_data)
-{
-    struct sockaddr_storage address;
-    char ip[INET6_ADDRSTRLEN];
+static int __accept (int sock, void *user_data) {
     int client;
 
-    if ((client = socket_tcp_accept(socket, &address)) < 0)
+    if ((client = socket_unix_accept(sock)) < 0)
         return(-1);
 
-    socket_str_address(ip, INET6_ADDRSTRLEN, (const struct sockaddr *)&address);
-    printf(" - Listener is ready to accept %d %s.\n", client, ip);
-
+    printf(" - Listener is ready to accept %d.\n", client);
     return(client);
 }
 
-static int __read (int sock,
-                   void *user_data)
+static int __read (int sock, void *user_data)
 {
     char buffer[1024];
     ssize_t n;
@@ -72,15 +65,12 @@ static int __read (int sock,
 
 
 int main (int argc, char **argv) {
-    struct sockaddr_storage addr;
-    char ip[INET6_ADDRSTRLEN];
     int sock;
 
-    if ((sock = socket_tcp_bind(NULL, "8080", &addr)) < 0)
+    if ((sock = socket_unix_bind("test.sock")) < 0)
         return(1);
 
-    socket_str_address(ip, INET6_ADDRSTRLEN, (const struct sockaddr *)&addr);
-    printf("Server is Listening on %s\n", ip);
+    printf("Server is Listening...\n");
 
 #if defined(HAS_SOCKPOLL_EPOLL)
     printf("Using epoll...\n");

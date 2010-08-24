@@ -1,3 +1,31 @@
+/* [ sockpoll.h ] - Sock (Event Loop) Pool
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2010, Matteo Bertozzi
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the author nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL MATTEO BERTOZZI BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
+ */
 #include <sys/types.h>
 #include <sys/time.h>
 #include <string.h>
@@ -14,7 +42,6 @@ int sockpoll_select (int socket,
                      int *is_looping,
                      void *user_data)
 {
-    struct sockaddr_storage addr;
     fd_set fds, rfds;
     int sd, sdmax;
     int client;
@@ -33,10 +60,7 @@ int sockpoll_select (int socket,
         for (sd = 0; sd <= sdmax; ++sd) {
             if (FD_ISSET(sd, &rfds)) {
                 if (sd == socket) {
-                    if ((client = socket_tcp_accept(socket, &addr)) < 0)
-                        continue;
-
-                    if (accept_f && accept_f(client, &addr, user_data) < 0) {
+                    if ((client = accept_f(socket, user_data)) < 0) {
                         close(client);
                         continue;
                     }
@@ -65,7 +89,6 @@ int sockpoll_epoll (int socket,
                     void *user_data)
 {
     struct epoll_event events[32];
-    struct sockaddr_storage addr;
     struct epoll_event event;
     int n, nfds;
     int client;
@@ -95,13 +118,8 @@ int sockpoll_epoll (int socket,
 
         for (n = 0; n < nfds; ++n) {
             if (events[n].data.fd == socket) {
-                if ((client = socket_tcp_accept(socket, &addr)) < 0)
+                if ((client = accept_f(socket, user_data)) < 0)
                     continue;
-
-                if (accept_f && accept_f(client, &addr, user_data) < 0) {
-                    close(client);
-                    continue;
-                }
 
                 fcntl(client, F_SETFL, O_NONBLOCK);
                 event.events = EPOLLIN | EPOLLET;
@@ -134,7 +152,6 @@ int sockpoll_kqueue (int socket,
                      int *is_looping,
                      void *user_data)
 {
-    struct sockaddr_storage addr;
     struct kevent events[32];
     struct kevent event;
     int n, nevents;
@@ -156,7 +173,7 @@ int sockpoll_kqueue (int socket,
         close(kq);
         return(-2);
     }
-    
+
     while ((is_looping != NULL) ? (*is_looping) : 1) {
         if ((nevents = kevent(kq, NULL, 0, events, 32, NULL)) < 0) {
             perror("kevent()");
@@ -166,10 +183,7 @@ int sockpoll_kqueue (int socket,
 
         for (n = 0; n < nevents; ++n) {
             if (events[n].ident == socket) {
-                if ((client = socket_tcp_accept(socket, &addr)) < 0)
-                    continue;
-
-                if (accept_f && accept_f(client, &addr, user_data) < 0) {
+                if ((client = accept_f(socket, user_data)) < 0) {
                     close(client);
                     continue;
                 }

@@ -59,6 +59,12 @@ int     socket_udp_recv         (int sock,
                                  int n,
                                  int flags);
 
+#ifdef HAS_UNIX_SOCKET
+int     socket_unix_connect     (const char *filepath);
+int     socket_unix_bind        (const char *filepath);
+int     socket_unix_accept      (int socket);
+#endif /* HAS_UNIX_SOCKET */
+
 int     socket_address          (int sock,
                                  struct sockaddr_storage *addr);
 
