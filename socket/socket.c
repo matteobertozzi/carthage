@@ -346,6 +346,68 @@ int socket_unix_accept (int socket) {
     return(sd);
 }
 
+int socket_unix_sendfd (int sock, int fd) {
+    unsigned char cmsgbuf[CMSG_LEN(sizeof(int))];
+    struct cmsghdr *cmsg;
+    unsigned int magic;
+    struct msghdr msg;
+    struct iovec iov;
+
+    magic = 0xFD5;
+    iov.iov_base = &magic;
+    iov.iov_len = sizeof(unsigned int);
+
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+    msg.msg_name = NULL;
+    msg.msg_namelen = 0;
+
+    cmsg = (struct cmsghdr *)cmsgbuf;
+    cmsg->cmsg_level = SOL_SOCKET;
+    cmsg->cmsg_type = SCM_RIGHTS;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+    msg.msg_control = cmsg;
+    msg.msg_controllen = cmsg->cmsg_len;
+    *(int *)CMSG_DATA(cmsg) = fd;
+
+    if (sendmsg(sock, &msg, 0) != sizeof(unsigned int)) {
+        perror("sendmsg()");
+        return(-1);
+    }
+
+    return(0);
+}
+
+int socket_unix_recvfd (int sock) {
+    unsigned char cmsgbuf[CMSG_LEN(sizeof(int))];
+    struct cmsghdr *cmsg;
+    struct msghdr msg;
+    struct iovec iov;
+    unsigned int magic;
+
+    iov.iov_base = &magic;
+    iov.iov_len = sizeof(unsigned int);
+
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+    msg.msg_name = NULL;
+    msg.msg_namelen = 0;
+
+    cmsg = (struct cmsghdr *)cmsgbuf;
+    msg.msg_control = cmsg;
+    msg.msg_controllen = CMSG_LEN(sizeof(int));
+
+    if (recvmsg(sock, &msg, 0) != sizeof(unsigned int)) {
+        perror("recvmsg()");
+        return(-1);
+    }
+
+    if (magic != 0xFD5)
+        return(-2);
+
+    return(*(int *)CMSG_DATA(cmsg));
+}
+
 int socket_unix_send (int sock,
                       const struct sockaddr_un *addr,
                       const void *buffer,

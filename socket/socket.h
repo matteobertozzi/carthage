@@ -67,6 +67,9 @@ int     socket_unix_connect     (const char *filepath);
 int     socket_unix_bind        (const char *filepath, int dgram);
 int     socket_unix_accept      (int socket);
 
+int     socket_unix_sendfd      (int sock, int fd);
+int     socket_unix_recvfd      (int sock);
+
 int     socket_unix_send        (int sock,
                                  const struct sockaddr_un *addr,
                                  const void *buffer,
