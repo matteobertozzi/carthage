@@ -27,62 +27,50 @@
  * -----------------------------------------------------------------------------
  */
 
+#include <sys/un.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
 
-#include "sockpoll.h"
 #include "socket.h"
 
-static int __accept (int sock, void *user_data) {
-    int client;
+#define __UNIX_SOCK_PATH     "client-dgram.sock"
+#define __UNIX_SOCK_SRVPATH  "server-dgram.sock"
 
-    if ((client = socket_unix_accept(sock)) < 0)
-        return(-1);
-
-    printf(" - Listener is ready to accept %d.\n", client);
-    return(client);
-}
-
-static int __read (int sock, void *user_data)
-{
-    char buffer[1024];
-    ssize_t n;
-
-    memset(buffer, 0, 1024);
-    if ((n = recv(sock, buffer, 1024, 0)) < 1) {
-        printf(" - %d is ready to leave.\n", sock);
-        return(-1);
-    }
-
-    printf(" - %d is ready to read %d.\n", sock, n);
-    printf("   %s\n", buffer);
-
-    send(sock, "OK, Received!\n", 14, 0);
-
-    return(0);
-}
-
+#define __QUIT_SOCK(sock)               \
+    do {                                \
+        close(sock);                    \
+        unlink(__UNIX_SOCK_PATH);       \
+    } while (0)
 
 int main (int argc, char **argv) {
+    struct sockaddr_un addr;
+    socklen_t addrlen;
+    char buffer[64];
     int sock;
+    int n;
 
-    if ((sock = socket_unix_bind("test.sock", 0)) < 0)
+    if ((sock = socket_unix_bind(__UNIX_SOCK_PATH, 1)) < 0)
         return(1);
 
-    printf("Server is Listening...\n");
+    addr.sun_family = AF_UNIX;
+    strcpy(addr.sun_path, __UNIX_SOCK_SRVPATH);
+    if ((n = socket_unix_send(sock, &addr, "Hello Server\n", 13, 0)) < 0) {
+        perror("send()");
+        __QUIT_SOCK(sock);
+        return(2);
+    }
+    printf("Send %d\n", n);
 
-#if defined(HAS_SOCKPOLL_EPOLL)
-    printf("Using epoll...\n");
-    sockpoll_epoll(sock, __accept, __read, NULL, NULL);
-#elif defined(HAS_SOCKPOLL_KQUEUE)
-    printf("Using kqueue...\n");
-    sockpoll_kqueue(sock, __accept, __read, NULL, NULL);
-#else
-    printf("Using select...\n");
-    sockpoll_select(sock, __accept, __read, NULL, NULL);
-#endif
-    close(sock);
+    addrlen = sizeof(struct sockaddr_un);
+    if ((n = socket_unix_recv(sock, &addr, buffer, 64, 0)) < 0) {
+        perror("recvfrom()");
+        __QUIT_SOCK(sock);
+        return(3);
+    }
+    printf("Recv %s: %s\n", addr.sun_path, buffer);
+
+    __QUIT_SOCK(sock);
 
     return(0);
 }

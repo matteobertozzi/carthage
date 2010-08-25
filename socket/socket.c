@@ -300,12 +300,12 @@ int socket_unix_connect (const char *filepath) {
     return(sock);
 }
 
-int socket_unix_bind (const char *filepath) {
+int socket_unix_bind (const char *filepath, int dgram) {
     struct sockaddr_un addr;
     socklen_t addrlen;
     int sock;
 
-    if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+    if ((sock = socket(AF_UNIX, dgram ? SOCK_DGRAM : SOCK_STREAM, 0)) < 0) {
         perror("socket()");
         return(-2);
     }
@@ -320,10 +320,13 @@ int socket_unix_bind (const char *filepath) {
         return(-3);
     }
 
-    if (listen(sock, __LISTEN_BACKLOG) < 0) {
-        perror("listen()");
-        close(sock);
-        return(-4);
+    if (!dgram) {
+        if (listen(sock, __LISTEN_BACKLOG) < 0) {
+            perror("listen()");
+            unlink(addr.sun_path);
+            close(sock);
+            return(-4);
+        }
     }
 
     return(sock);
@@ -341,6 +344,30 @@ int socket_unix_accept (int socket) {
     }
 
     return(sd);
+}
+
+int socket_unix_send (int sock,
+                      const struct sockaddr_un *addr,
+                      const void *buffer,
+                      int n,
+                      int flags)
+{
+    return(sendto(sock, buffer, n, flags,
+                  (const struct sockaddr *)addr,
+                  sizeof(struct sockaddr_un)));
+}
+
+int socket_unix_recv (int sock,
+                      struct sockaddr_un *addr,
+                      void *buffer,
+                      int n,
+                      int flags)
+{
+    socklen_t addr_size;
+    addr_size = sizeof(struct sockaddr_un);
+    return(recvfrom(sock, buffer, n, flags,
+                    (struct sockaddr *)addr,
+                    &addr_size));
 }
 
 #endif /* HAS_UNIX_SOCKET */

@@ -60,9 +60,23 @@ int     socket_udp_recv         (int sock,
                                  int flags);
 
 #ifdef HAS_UNIX_SOCKET
+
+#include <sys/un.h>
+
 int     socket_unix_connect     (const char *filepath);
-int     socket_unix_bind        (const char *filepath);
+int     socket_unix_bind        (const char *filepath, int dgram);
 int     socket_unix_accept      (int socket);
+
+int     socket_unix_send        (int sock,
+                                 const struct sockaddr_un *addr,
+                                 const void *buffer,
+                                 int n,
+                                 int flags);
+int     socket_unix_recv        (int sock,
+                                 struct sockaddr_un *addr,
+                                 void *buffer,
+                                 int n,
+                                 int flags);
 #endif /* HAS_UNIX_SOCKET */
 
 int     socket_address          (int sock,
