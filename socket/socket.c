@@ -290,7 +290,7 @@ int socket_unix_connect (const char *filepath) {
     addr.sun_family = AF_UNIX;
     strcpy(addr.sun_path, filepath);
 
-    addrlen = (strlen(addr.sun_path) + sizeof(addr.sun_family));
+    addrlen = (strlen(addr.sun_path) + (sizeof(addr) - sizeof(addr.sun_path)));
     if (connect(sock, (struct sockaddr *)&addr, addrlen) < 0) {
         perror("connect()");
         close(sock);
@@ -313,7 +313,7 @@ int socket_unix_bind (const char *filepath, int dgram) {
     addr.sun_family = AF_UNIX;
     strcpy(addr.sun_path, filepath);
 
-    addrlen = (strlen(addr.sun_path) + sizeof(addr.sun_family));
+    addrlen = (strlen(addr.sun_path) + (sizeof(addr) - sizeof(addr.sun_path)));
     if (bind(sock, (struct sockaddr *)&addr, addrlen) < 0) {
         perror("bind()");
         close(sock);
