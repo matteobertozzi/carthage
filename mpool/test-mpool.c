@@ -37,12 +37,12 @@ int main (int argc, char **argv) {
 
     mpool_init(&mpool, buffer, sizeof(buffer));
 
-    for (int i = 0; i < 4; ++i) {
+    for (i = 0; i < 4; ++i) {
         pointers[i] = mpool_alloc(&mpool, 245);
         printf("%d: %p - Free %u\n", i, pointers[i], mpool.free);
     }
 
-    for (int i = 0; i < 4; ++i)
+    for (i = 0; i < 4; ++i)
         mpool_free(&mpool, pointers[i]);
 
     pointers[0] = mpool_alloc(&mpool, 512);
