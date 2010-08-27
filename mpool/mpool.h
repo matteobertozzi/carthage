@@ -40,6 +40,7 @@ typedef struct _mpool {
 void    mpool_init      (mpool_t *mpool, void *mem, uint32_t size);
 void *  mpool_alloc     (mpool_t *mpool, uint32_t size);
 void    mpool_free      (mpool_t *mpool, void *block);
+void *  mpool_realloc   (mpool_t *mpool, void *block, uint32_t size);
 
 #endif /* !_MPOOL_H_ */
 

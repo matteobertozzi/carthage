@@ -35,6 +35,7 @@
  * +------+----------------------+------+-------------+------+----------------+
  */
 
+#include <string.h>
 #include <assert.h>
 #include <stdlib.h>
 
@@ -56,7 +57,7 @@ void mpool_init (mpool_t *mpool, void *mem, uint32_t size) {
     /* Init free size and first chunk, marked as free */
     mpool->free = size - sizeof(mchunk_t);
     mchunk = (mchunk_t *)mem;
-    mchunk->size = size & 0x7fffffff;
+    mchunk->size = mpool->free & 0x7fffffff;
 }
 
 /**
@@ -85,6 +86,8 @@ void *mpool_alloc (mpool_t *mpool, uint32_t size) {
                 p = (uint8_t *)nchunk;
                 chunk_size = nchunk->size & 0x7fffffff;
                 goto _next_mchunk;
+            } else if ((uint8_t *)nchunk >= end) {
+                return(NULL);
             }
 
             /* Merge two chunks */
@@ -97,16 +100,16 @@ void *mpool_alloc (mpool_t *mpool, uint32_t size) {
         assert(chunk_size >= size);
 
         /* Allocate chunk */
-        mchunk->size  = size;
-        mchunk->size |= 0x80000000;
+        mchunk->size = size | 0x80000000;
 
         /* Setup Next Chunk if this one has more than requested space */
         if (chunk_size > size) {
             mchunk = (mchunk_t *)(p + sizeof(mchunk_t) + size);
             mchunk->size = (chunk_size - size - sizeof(mchunk_t)) & 0x7fffffff;
+            mpool->free -= sizeof(mchunk_t);
         }
 
-        mpool->free -= size + sizeof(mchunk_t);
+        mpool->free -= size;
         return(p + sizeof(mchunk_t));
 
 _next_mchunk:
@@ -137,5 +140,81 @@ void mpool_free (mpool_t *mpool, void *block) {
         mchunk->size += ochunk->size + sizeof(mchunk_t);
         mpool->free += sizeof(mchunk_t);
     }
+}
+
+/**
+ * Re-Alloc new block with specified size.
+ * if block is NULL: mpool_alloc() is called.
+ * if size is 0: mpool_free() is called and NULL returned.
+ * If block resize fail, NULL is returned but block is still alive.
+ */
+void *mpool_realloc (mpool_t *mpool, void *block, uint32_t size) {
+    uint32_t ochunk_size;
+    uint32_t chunk_size;
+    uint32_t diff_size;
+    mchunk_t *mchunk;
+    mchunk_t *ochunk;
+
+    /* Same as mpool_alloc() */
+    if (block == NULL)
+        return(mpool_alloc(mpool, size));
+
+    /* Same as mpool_free() */
+    if (size == 0U) {
+        mpool_free(mpool, block);
+        return(NULL);
+    }
+
+    mchunk = (mchunk_t *)(block - sizeof(mchunk_t));
+    chunk_size = mchunk->size & 0x7fffffff;
+
+    if (size < chunk_size) {
+        diff_size = (chunk_size - size);
+
+        /* You want drop too few space... keep this block */
+        if (diff_size <= (sizeof(mchunk_t) << 1))
+            return(block);
+
+        /* Setup Next Chunk and Set New Size */
+        ochunk = (mchunk_t *)(block + size);
+        ochunk->size = (mchunk->size - size - sizeof(mchunk_t)) & 0x7fffffff;
+        mchunk->size = size | 0x80000000;
+        mpool->free += diff_size - sizeof(mchunk_t);
+    } else {
+        diff_size = (size - chunk_size);
+
+        ochunk = (mchunk_t *)(block + chunk_size);
+        ochunk_size = ochunk->size & 0x7fffffff;
+        if ((ochunk->size >> 31) ||
+            (diff_size >= (ochunk->size + sizeof(mchunk_t))))
+        {
+            void *nblock;
+
+            /* Next block is not free, try with malloc() */
+            if ((nblock = mpool_alloc(mpool, size)) != NULL) {
+                memcpy(nblock, block, mchunk->size);
+                mpool_free(mpool, block);
+            }
+
+            return(nblock);
+        }
+
+        /* Merge this and next block */
+        mchunk->size += ochunk_size + sizeof(mchunk_t);
+        ochunk_size = (mchunk->size & 0x7fffffff) - size;
+        mpool->free -= diff_size;
+
+        if (ochunk_size <= (sizeof(mchunk_t) << 1)) {
+            mpool->free -= sizeof(mchunk_t);
+            return(block);
+        }
+
+        /* Setup Next Chunk and Set New Size */
+        ochunk = (mchunk_t *)(block + size);
+        ochunk->size = (ochunk_size - sizeof(mchunk_t)) & 0x7fffffff;
+        mchunk->size = size | 0x80000000;
+    }
+
+    return(block);
 }
 

@@ -36,6 +36,7 @@ int main (int argc, char **argv) {
     int i;
 
     mpool_init(&mpool, buffer, sizeof(buffer));
+    printf("Free %u\n", mpool.free);
 
     for (i = 0; i < 4; ++i) {
         pointers[i] = mpool_alloc(&mpool, 245);
@@ -49,7 +50,32 @@ int main (int argc, char **argv) {
     printf("0: %ld\n", (void *)pointers[0] - (void *)buffer);
 
     pointers[1] = mpool_alloc(&mpool, 512);
-    printf("1: %ld\n", (void *)pointers[1] - (void *)buffer);
+    printf("1: IS NULL %d\n", pointers[1] == NULL);
+
+    mpool_free(&mpool, pointers[0]);
+
+    printf("Free %u %u\n", mpool.free, *((uint32_t *)buffer));
+
+    pointers[0] = NULL;
+    for (i = 0; i < 9; ++i) {
+        pointers[0] = mpool_realloc(&mpool, pointers[0], (i + 1) << 1);
+
+        pointers[1] = mpool_alloc(&mpool, 12);
+
+        printf("0: %ld (%ld) %u\n", (pointers[1] - (void *)buffer), (pointers[0] - (void *)buffer), mpool.free);
+        mpool_free(&mpool, pointers[1]);
+    }
+
+    for (i = 9; i >= 0; --i) {
+        pointers[0] = mpool_realloc(&mpool, pointers[0], (i + 1) << 1);
+
+        pointers[1] = mpool_alloc(&mpool, 12);
+        printf("0: %ld (%ld) %u\n", (pointers[1] - (void *)buffer), (pointers[0] - (void *)buffer), mpool.free);
+        mpool_free(&mpool, pointers[1]);
+    }
+
+    mpool_free(&mpool, pointers[0]);
+    printf("Free %u\n", mpool.free);
 
     return(0);
 }
