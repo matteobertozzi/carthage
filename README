@@ -14,9 +14,13 @@ and Utils written in C.
  - Memory Pool
  - COW Mem Block
  - Hash Table, Set, Bag, Queue
- - Fast memcpy(), memset(), memcmp(), memswap()
+ - Fast memcpy(), memset(), memcmp(), memswap(), strlen()
+ - String Buffer, char * with dynamic realloc
+ - Chunk Queue (Useful for Buffered streams)
+ - Memory Stream (File Like API for in-mem read/write operations)
  - Worker Queue (pthread)
  - Sort/Merge Utils
+ - Socket (TCP, UDP, Unix and kqueue epoll, select poller)
  - ...
 
 Copyright (c) 2010, Matteo Bertozzi
