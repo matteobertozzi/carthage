@@ -95,6 +95,7 @@ chunkq_t *chunkq_alloc (chunkq_t *chunkq,  size_t chunk_size) {
     chunkq->pool = NULL;
     chunkq->psize = 0U;
     chunkq->chunk = chunk_size;
+    chunkq->size = 0U;
     return(chunkq);
 }
 
@@ -110,6 +111,7 @@ void chunkq_clear (chunkq_t *chunkq) {
     __chunkq_free(chunkq, __CHUNKN(chunkq->head));
     chunkq->head = NULL;
     chunkq->tail = NULL;
+    chunkq->size = 0U;
 }
 
 ssize_t chunkq_read (chunkq_t *chunkq, void *buffer, size_t size) {
@@ -130,6 +132,7 @@ ssize_t chunkq_read (chunkq_t *chunkq, void *buffer, size_t size) {
 
         p += bksize;
         rd += bksize;
+        chunkq->size -= bksize;
         node->offset += bksize;
         node->size -= bksize;
         if (node->size == 0) {
@@ -149,12 +152,12 @@ ssize_t chunkq_append (chunkq_t *chunkq,
                        const void *buffer,
                        size_t size)
 {
-    uint8_t *p = (uint8_t *)buffer;
+    const uint8_t *p = (const uint8_t *)buffer;
     chunkn_t *node;
     size_t wr = 0;
     size_t bksize;
 
-    if ((node = chunkq->tail) == NULL) {
+    if ((node = __CHUNKN(chunkq->tail)) == NULL) {
         if ((node = __chunkn_alloc(chunkq)) == NULL)
             return(-1);
         chunkq->tail = node;
@@ -176,10 +179,56 @@ ssize_t chunkq_append (chunkq_t *chunkq,
 
         memcpy(node->data + node->offset + node->size, p, bksize);
         node->size += bksize;
+        chunkq->size += bksize;
         wr += bksize;
         p += bksize;
     }
 
     return(wr);
+}
+
+ssize_t chunkq_peek (chunkq_t *chunkq,
+                     size_t offset,
+                     void *buffer,
+                     size_t size)
+{
+    uint8_t *p = (uint8_t *)buffer;
+    chunkn_t *node;
+    size_t bksize;
+    size_t x = 0U;
+
+    node = __CHUNKN(chunkq->head);
+    while (node != NULL) {
+        x += node->size;
+        if (x > offset)
+            break;
+
+        node = node->next;
+    }
+
+    if (node == NULL)
+        return(-1);
+
+    offset = offset - (x - node->size);
+    if ((bksize = (node->size - offset)) > size)
+        bksize = size;
+    memcpy(p, node->data + node->offset + offset, bksize);
+    p += bksize;
+    x = bksize;
+
+    while (x < size) {
+        if ((node = node->next) == NULL)
+            break;
+
+        bksize = (size - x);
+        if (node->size < bksize)
+            bksize = node->size;
+
+        memcpy(p, node->data, bksize);
+        p += bksize;
+        x += bksize;
+    }
+
+    return(x);
 }
 

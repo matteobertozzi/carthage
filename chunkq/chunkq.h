@@ -39,6 +39,7 @@ typedef struct _chunkq {
     void *   pool;
     uint32_t psize;
     uint32_t chunk;
+    size_t   size;
 } chunkq_t;
 
 chunkq_t *chunkq_alloc      (chunkq_t *chunkq,
@@ -53,6 +54,11 @@ ssize_t   chunkq_read       (chunkq_t *chunkq,
 
 ssize_t   chunkq_append     (chunkq_t *chunkq,
                              const void *buffer,
+                             size_t size);
+
+ssize_t   chunkq_peek       (chunkq_t *chunkq,
+                             size_t offset,
+                             void *buffer,
                              size_t size);
 
 #endif /* _CHUNKQ_H_ */

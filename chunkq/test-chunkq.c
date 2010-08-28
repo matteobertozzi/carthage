@@ -36,18 +36,36 @@ int main (int argc, char **argv) {
     char buffer[16];
     chunkq_t chunk;
     ssize_t n;
+    size_t i;
 
     chunkq_alloc(&chunk, 4);
 
     n = chunkq_append(&chunk, "Hello", 5);
-    printf("Append: %d\n", n);
+    printf("Append: %u %u\n", chunk.size, n);
 
-    n = chunkq_append(&chunk, " World! --> Test long long buf", 30);
-    printf("Append: %d\n", n);
+    n = chunkq_append(&chunk, " ABCDEFGHKILMNOPQRSTUVWXZ", 25);
+    printf("Append: %u %u\n", chunk.size, n);
+
+    for (i = 0; i < 40; ++i) {
+        if ((n = chunkq_peek(&chunk, i, buffer, 10)) > 0) {
+            buffer[n] = '\0';
+            printf("PEEK %u: %d '%s'\n", i, n, buffer);
+        }
+    }
+
+    if ((n = chunkq_read(&chunk, buffer, 2)) > 0) {
+        buffer[n] = '\0';
+        printf("READ %u: %s (%u)\n", n, buffer, chunk.size);
+    }
+
+    if ((n = chunkq_peek(&chunk, 0, buffer, 10)) > 0) {
+        buffer[n] = '\0';
+        printf("PEEK %u: %d '%s'\n", i, n, buffer);
+    }
 
     while ((n = chunkq_read(&chunk, buffer, 15)) > 0) {
         buffer[n] = '\0';
-        printf("%s", buffer);
+        printf("READ %u: %s (%u)\n", n, buffer, chunk.size);
     }
     printf("\n");
 
