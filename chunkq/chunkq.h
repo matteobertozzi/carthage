@@ -31,7 +31,7 @@
 #define _CHUNKQ_H_
 
 #include <stdint.h>
-#include <stddef.h>
+#include <stdlib.h>
 
 typedef struct _chunkq {
     void *   head;
@@ -60,6 +60,10 @@ ssize_t   chunkq_peek       (chunkq_t *chunkq,
                              size_t offset,
                              void *buffer,
                              size_t size);
+ssize_t    chunkq_indexof   (chunkq_t *chunkq,
+                             size_t offset,
+                             const void *needle,
+                             size_t needle_len);
 
 #endif /* _CHUNKQ_H_ */
 

@@ -48,6 +48,19 @@ struct _chunkn {
     uint32_t  size;
 };
 
+
+struct chunkq_search {
+    ssize_t offset;
+    ssize_t rd;
+    int state;
+
+    const uint8_t *needle;
+    uint32_t needle_len;
+
+    const uint8_t *data;
+    uint32_t data_len;
+};
+
 static chunkn_t *__chunkn_alloc (chunkq_t *chunkq) {
     chunkn_t *node;
     uint8_t *blob;
@@ -89,7 +102,83 @@ static void __chunkq_free (chunkq_t *chunkq, chunkn_t *head) {
     }
 }
 
-chunkq_t *chunkq_alloc (chunkq_t *chunkq,  size_t chunk_size) {
+static chunkn_t *__chunkn_at_offset (chunkq_t *chunkq,
+                                     size_t offset,
+                                     size_t *x)
+{
+    chunkn_t *node;
+    size_t n = 0U;
+
+    node = __CHUNKN(chunkq->head);
+    while (node != NULL) {
+        n += node->size;
+        if (n > offset)
+            break;
+
+        node = node->next;
+    }
+
+    *x = n;
+    return(node);
+}
+
+static int __chunkn_search_step (struct chunkq_search *search,
+                                 const uint8_t *needle,
+                                 uint32_t needle_len)
+{
+    ssize_t index = -1;
+    void *p;
+
+    while ((p = memchr(search->data, *(search->needle), search->data_len))) {
+        if ((index = ((uint8_t *)p - search->data) + 1) > 1 && search->state) {
+            search->needle_len = needle_len;
+            search->needle = (const uint8_t *)needle;
+            search->state = 0;
+            continue;
+        }
+
+        search->rd += index;
+        if (!search->state) {
+            search->offset = search->rd - 1;
+            search->state = 1;
+        }
+
+        if (--(search->needle_len) == 0)
+            return(1);
+
+        search->needle++;
+        search->data_len -= index;
+        search->data += index;
+
+        while (search->data_len > 0) {
+            search->rd++;
+
+            if (*(search->data) != *(search->needle)) {
+                search->needle_len = needle_len;
+                search->needle = (const uint8_t *)needle;
+                search->state = 0;
+                break;
+            }
+
+            if (--(search->needle_len) == 0)
+                return(2);
+
+            search->needle++;
+            search->data++;
+            search->data_len--;
+        }
+
+        if (search->data_len == 0)
+            return(0);
+    }
+
+    if (index < 0)
+        search->rd += search->data_len;
+
+    return(0);
+}
+
+chunkq_t *chunkq_alloc (chunkq_t *chunkq,  uint32_t chunk_size) {
     chunkq->head = NULL;
     chunkq->tail = NULL;
     chunkq->pool = NULL;
@@ -195,18 +284,9 @@ ssize_t chunkq_peek (chunkq_t *chunkq,
     uint8_t *p = (uint8_t *)buffer;
     chunkn_t *node;
     size_t bksize;
-    size_t x = 0U;
+    size_t x;
 
-    node = __CHUNKN(chunkq->head);
-    while (node != NULL) {
-        x += node->size;
-        if (x > offset)
-            break;
-
-        node = node->next;
-    }
-
-    if (node == NULL)
+    if ((node = __chunkn_at_offset(chunkq, offset, &x)) == NULL)
         return(-1);
 
     offset = offset - (x - node->size);
@@ -230,5 +310,39 @@ ssize_t chunkq_peek (chunkq_t *chunkq,
     }
 
     return(x);
+}
+
+ssize_t chunkq_indexof (chunkq_t *chunkq,
+                        size_t offset,
+                        const void *needle,
+                        size_t needle_len)
+{
+    struct chunkq_search search;
+    chunkn_t *node;
+    size_t x;
+
+    if ((node = __chunkn_at_offset(chunkq, offset, &x)) == NULL)
+        return(-1);
+
+    search.state = 0;
+    search.offset = 0;
+    search.rd = offset;
+    search.needle = needle;
+    search.needle_len = needle_len;
+
+    offset = offset - (x - node->size);
+    search.data = (node->data + node->offset + offset);
+    search.data_len = (node->size - offset);
+    if (__chunkn_search_step(&search, needle, needle_len))
+        return(search.offset);
+
+    while ((node = node->next) != NULL) {
+        search.data = node->data;
+        search.data_len = node->size;
+        if (__chunkn_search_step(&search, needle, needle_len))
+            return(search.offset);
+    }
+
+    return(-1);
 }
 

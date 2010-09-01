@@ -46,6 +46,21 @@ int main (int argc, char **argv) {
     n = chunkq_append(&chunk, " ABCDEFGHKILMNOPQRSTUVWXZ", 25);
     printf("Append: %u %u\n", chunk.size, n);
 
+    n = chunkq_indexof(&chunk, 0, "llo ABD", 7);
+    printf("Index Of: %ld\n", n);
+
+    n = chunkq_indexof(&chunk, 0, "llo", 3);
+    printf("Index Of: %ld\n", n);
+
+    n = chunkq_indexof(&chunk, 0, "CDE", 3);
+    printf("Index Of: %ld\n", n);
+
+    n = chunkq_indexof(&chunk, 0, "EFGHKIL", 7);
+    printf("Index Of: %ld\n", n);
+
+    n = chunkq_indexof(&chunk, 3, "Z", 1);
+    printf("Index Of: %ld\n", n);
+
     for (i = 0; i < 40; ++i) {
         if ((n = chunkq_peek(&chunk, i, buffer, 10)) > 0) {
             buffer[n] = '\0';
@@ -67,6 +82,7 @@ int main (int argc, char **argv) {
         buffer[n] = '\0';
         printf("READ %u: %s (%u)\n", n, buffer, chunk.size);
     }
+
     printf("\n");
 
     chunkq_free(&chunk);
