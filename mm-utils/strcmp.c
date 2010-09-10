@@ -1,4 +1,4 @@
-/* [ memcpy.h ] - Memory Copy
+/* [ strcmp.c ] - compare two strings
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -26,23 +26,58 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  */
+#include <ctype.h>
 
-#ifndef _MEMCPY_H_
-#define _MEMCPY_H_
+#include "memcmp.h"
+#include "strlen.h"
 
-#include <stddef.h>
+#define __tolower(c)          ((!isalpha(c) || islower(c)) ? (c) : ((c) - 'A' + 'a'))
 
-void *  memcpy      (void *dest, const void *src, size_t n);
-void *  memcpy8     (void *dest, const void *src, size_t n);
-void *  memcpy16    (void *dest, const void *src, size_t n);
-void *  memcpy32    (void *dest, const void *src, size_t n);
-void *  memcpy64    (void *dest, const void *src, size_t n);
+int strncmp (const char *s1, const char *s2, size_t n) {
+    size_t l1, l2;
 
-void *  memmove     (void *dest, const void *src, size_t n);
-void *  memmove8    (void *dest, const void *src, size_t n);
-void *  memmove16   (void *dest, const void *src, size_t n);
-void *  memmove32   (void *dest, const void *src, size_t n);
-void *  memmove64   (void *dest, const void *src, size_t n);
+    if ((l1 = strlen(s1)) < n) n = l1;
+    if ((l2 = strlen(s2)) < n) n = l2;
 
-#endif /* !_MEMCPY_H_ */
+    return(memcmp(s1, s2, n));
+}
+
+int strcmp (const char *s1, const char *s2) {
+    size_t l1, l2;
+
+    l1 = strlen(s1);
+    l2 = strlen(s2);
+
+    return(memcmp(s1, s2, l1 < l2 ? l1 : l2));
+}
+
+int strncasecmp (const char *s1, const char *s2, size_t n) {
+    unsigned char c1, c2;
+
+    while (n--) {
+        c1 = *s1++;
+        c2 = *s2++;
+        if ((c1 = __tolower(c1)) != (c2 = __tolower(c2)))
+            return(c1 - c2);
+
+        if (!c1)
+            break;
+    };
+
+    return(0);
+}
+
+int strcasecmp (const char *s1, const char *s2) {
+    register unsigned char c1, c2;
+
+    do {
+        c1 = *s1++;
+        c2 = *s2++;
+        if ((c1 = __tolower(c1)) != (c2 = __tolower(c2)))
+            return(c1 - c2);
+
+    } while (c1);
+
+    return(0);
+}
 

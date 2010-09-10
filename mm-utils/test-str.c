@@ -1,4 +1,4 @@
-/* [ memcpy.h ] - Memory Copy
+/* 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -27,22 +27,59 @@
  * -----------------------------------------------------------------------------
  */
 
-#ifndef _MEMCPY_H_
-#define _MEMCPY_H_
+#include <stdio.h>
 
-#include <stddef.h>
+#include "strupper.h"
+#include "strlower.h"
+#include "strtrim.h"
+#include "strstr.h"
+#include "strcmp.h"
+#include "strlen.h"
 
-void *  memcpy      (void *dest, const void *src, size_t n);
-void *  memcpy8     (void *dest, const void *src, size_t n);
-void *  memcpy16    (void *dest, const void *src, size_t n);
-void *  memcpy32    (void *dest, const void *src, size_t n);
-void *  memcpy64    (void *dest, const void *src, size_t n);
+static void __test_strstr (void) {
+    char haystack[] = "Woo Hello World, Woo this is Haystack";
+    size_t haystack_len;
+    ssize_t x;
+    char *p;
 
-void *  memmove     (void *dest, const void *src, size_t n);
-void *  memmove8    (void *dest, const void *src, size_t n);
-void *  memmove16   (void *dest, const void *src, size_t n);
-void *  memmove32   (void *dest, const void *src, size_t n);
-void *  memmove64   (void *dest, const void *src, size_t n);
+    haystack_len = sizeof(haystack);
 
-#endif /* !_MEMCPY_H_ */
+    p = strstr(haystack, "World");
+    x = strpos(haystack, "World");
+    printf("%2lu %2ld %s\n", p - haystack, x, p);    
+
+    p = strstr(haystack, "Woo");
+    x = strpos(haystack, "Woo");
+    printf("%2lu %2ld %s\n", p - haystack, x, p);
+
+    p = strrstr(haystack, "Woo");
+    x = strrpos(haystack, "Woo");
+    printf("%2lu %2ld %s\n", p - haystack, x, p);
+
+    p = strstr(haystack, "thesht");
+    x = strpos(haystack, "thesht");
+    printf("p is NULL %d: %2ld\n", p == NULL, x);
+
+    p = strrstr(haystack, "thesht");
+    x = strrpos(haystack, "thesht");
+    printf("p is NULL %d - %2ld\n", p == NULL, x);
+}
+
+static void __test_strcase (void) {
+    char s1[] = "HeLlo WoRld! -Th1s 73sT#";
+    char s2[] = "HeLlo WoRld! -Th1s 73sT#";
+    
+    strupper(s1);
+    strlower(s2);
+
+    printf("S1 %s\n", s1);
+    printf("S2 %s\n", s2);
+    printf("CASE CMP: %d\n", strcasecmp(s1, s2));
+}
+
+int main (int argc, char **argv) {
+    __test_strstr();
+    __test_strcase();
+    return(0);
+}
 

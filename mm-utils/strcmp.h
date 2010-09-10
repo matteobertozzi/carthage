@@ -1,4 +1,4 @@
-/* [ memcpy.h ] - Memory Copy
+/* [ strcmp.h ] - compare two strings
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -27,22 +27,14 @@
  * -----------------------------------------------------------------------------
  */
 
-#ifndef _MEMCPY_H_
-#define _MEMCPY_H_
+#ifndef _STRCMP_H_
+#define _STRCMP_H_
 
-#include <stddef.h>
+int     strcmp          (const char *s1, const char *s2);
+int     strncmp         (const char *s1, const char *s2, size_t n);
 
-void *  memcpy      (void *dest, const void *src, size_t n);
-void *  memcpy8     (void *dest, const void *src, size_t n);
-void *  memcpy16    (void *dest, const void *src, size_t n);
-void *  memcpy32    (void *dest, const void *src, size_t n);
-void *  memcpy64    (void *dest, const void *src, size_t n);
+int     strcasecmp      (const char *s1, const char *s2);
+int     strncasecmp     (const char *s1, const char *s2, size_t n);
 
-void *  memmove     (void *dest, const void *src, size_t n);
-void *  memmove8    (void *dest, const void *src, size_t n);
-void *  memmove16   (void *dest, const void *src, size_t n);
-void *  memmove32   (void *dest, const void *src, size_t n);
-void *  memmove64   (void *dest, const void *src, size_t n);
-
-#endif /* !_MEMCPY_H_ */
+#endif /* !_STRCMP_H_ */
 

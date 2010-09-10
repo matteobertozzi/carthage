@@ -1,4 +1,4 @@
-/* [ memcpy.h ] - Memory Copy
+/* [ memmem.h ] - scan memory for a submemory
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -27,22 +27,20 @@
  * -----------------------------------------------------------------------------
  */
 
-#ifndef _MEMCPY_H_
-#define _MEMCPY_H_
+#ifndef _MEMMEM_H_
+#define _MEMMEM_H_
 
+#include <stdint.h>
 #include <stddef.h>
 
-void *  memcpy      (void *dest, const void *src, size_t n);
-void *  memcpy8     (void *dest, const void *src, size_t n);
-void *  memcpy16    (void *dest, const void *src, size_t n);
-void *  memcpy32    (void *dest, const void *src, size_t n);
-void *  memcpy64    (void *dest, const void *src, size_t n);
+void *  memmem      (const void *haystack,
+                     size_t haystack_len,
+                     const void *needle,
+                     size_t needle_len);
+void *  memrmem     (const void *haystack,
+                     size_t haystack_len,
+                     const void *needle,
+                     size_t needle_len);
 
-void *  memmove     (void *dest, const void *src, size_t n);
-void *  memmove8    (void *dest, const void *src, size_t n);
-void *  memmove16   (void *dest, const void *src, size_t n);
-void *  memmove32   (void *dest, const void *src, size_t n);
-void *  memmove64   (void *dest, const void *src, size_t n);
-
-#endif /* !_MEMCPY_H_ */
+#endif /* !_MEMMEM_H_ */
 

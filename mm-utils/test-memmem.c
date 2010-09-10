@@ -1,4 +1,4 @@
-/* [ memcpy.h ] - Memory Copy
+/*
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -27,22 +27,28 @@
  * -----------------------------------------------------------------------------
  */
 
-#ifndef _MEMCPY_H_
-#define _MEMCPY_H_
+#include <stdio.h>
+#include "memmem.h"
 
-#include <stddef.h>
+int main (int argc, char **argv) {
+    char haystack[] = "Woo Hello World, Woo this is Haystack";
+    size_t haystack_len;
+    void *p;
 
-void *  memcpy      (void *dest, const void *src, size_t n);
-void *  memcpy8     (void *dest, const void *src, size_t n);
-void *  memcpy16    (void *dest, const void *src, size_t n);
-void *  memcpy32    (void *dest, const void *src, size_t n);
-void *  memcpy64    (void *dest, const void *src, size_t n);
+    haystack_len = sizeof(haystack);
 
-void *  memmove     (void *dest, const void *src, size_t n);
-void *  memmove8    (void *dest, const void *src, size_t n);
-void *  memmove16   (void *dest, const void *src, size_t n);
-void *  memmove32   (void *dest, const void *src, size_t n);
-void *  memmove64   (void *dest, const void *src, size_t n);
+    p = memmem(haystack, haystack_len, "World", 5);
+    printf("%2lu %s\n", p - (void *)haystack, (char *)p);
 
-#endif /* !_MEMCPY_H_ */
+    p = memmem(haystack, haystack_len, "Woo", 3);
+    printf("%2lu %s\n", p - (void *)haystack, (char *)p);
+
+    p = memrmem(haystack, haystack_len, "Woo", 3);
+    printf("%2lu %s\n", p - (void *)haystack, (char *)p);
+
+    p = memrmem(haystack, haystack_len, "thesht", 6);
+    printf("p is NULL %d\n", p == NULL);
+
+    return(0);
+}
 

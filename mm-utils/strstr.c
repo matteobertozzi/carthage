@@ -1,4 +1,4 @@
-/* [ memcpy.h ] - Memory Copy
+/* [ strstr.c ] - locate a substring
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -27,22 +27,28 @@
  * -----------------------------------------------------------------------------
  */
 
-#ifndef _MEMCPY_H_
-#define _MEMCPY_H_
+#include "memmem.h"
+#include "strlen.h"
+#include "strstr.h"
 
-#include <stddef.h>
+char *strstr (const char *haystack, const char *needle) {
+    return((char *)memmem(haystack, strlen(haystack), needle, strlen(needle)));
+}
 
-void *  memcpy      (void *dest, const void *src, size_t n);
-void *  memcpy8     (void *dest, const void *src, size_t n);
-void *  memcpy16    (void *dest, const void *src, size_t n);
-void *  memcpy32    (void *dest, const void *src, size_t n);
-void *  memcpy64    (void *dest, const void *src, size_t n);
+char *strrstr (const char *haystack, const char *needle) {
+    return((char *)memrmem(haystack, strlen(haystack), needle, strlen(needle)));
+}
 
-void *  memmove     (void *dest, const void *src, size_t n);
-void *  memmove8    (void *dest, const void *src, size_t n);
-void *  memmove16   (void *dest, const void *src, size_t n);
-void *  memmove32   (void *dest, const void *src, size_t n);
-void *  memmove64   (void *dest, const void *src, size_t n);
 
-#endif /* !_MEMCPY_H_ */
+ssize_t strpos (const char *haystack, const char *needle) {
+    char *p;
+    p = (char *)memmem(haystack, strlen(haystack), needle, strlen(needle));
+    return((p != NULL) ? (p - haystack) : -1);
+}
+
+ssize_t strrpos (const char *haystack, const char *needle) {
+    char *p;
+    p = (char *)memrmem(haystack, strlen(haystack), needle, strlen(needle));
+    return((p != NULL) ? (p - haystack) : -1);
+}
 

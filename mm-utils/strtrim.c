@@ -1,4 +1,4 @@
-/* [ memcpy.h ] - Memory Copy
+/* [ strtrim.c ] - String Trim
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -27,22 +27,52 @@
  * -----------------------------------------------------------------------------
  */
 
-#ifndef _MEMCPY_H_
-#define _MEMCPY_H_
+#include <ctype.h>
 
-#include <stddef.h>
+#include "strtrim.h"
+#include "strlen.h"
+#include "memcpy.h"
 
-void *  memcpy      (void *dest, const void *src, size_t n);
-void *  memcpy8     (void *dest, const void *src, size_t n);
-void *  memcpy16    (void *dest, const void *src, size_t n);
-void *  memcpy32    (void *dest, const void *src, size_t n);
-void *  memcpy64    (void *dest, const void *src, size_t n);
+size_t strnltrim (char *str, size_t n) {
+    size_t start = 0U;
 
-void *  memmove     (void *dest, const void *src, size_t n);
-void *  memmove8    (void *dest, const void *src, size_t n);
-void *  memmove16   (void *dest, const void *src, size_t n);
-void *  memmove32   (void *dest, const void *src, size_t n);
-void *  memmove64   (void *dest, const void *src, size_t n);
+    while (isspace(str[start]) && start < n)
+        start++;
 
-#endif /* !_MEMCPY_H_ */
+    if (start > 0U) {
+        memmove(str, str + start, n - start);
+        str[n - start] = '\0';
+    }
+
+    return(n);
+}
+
+size_t strnrtrim (char *str, size_t n) {
+    while (n > 0U && isspace(str[n - 1]))
+        n--;
+
+    str[n] = '\0';
+    return(n);
+}
+
+size_t strntrim (char *str, size_t n) {
+    n = strnrtrim(str, n);
+    n = strnltrim(str, n);
+    return(n);
+}
+
+char *strltrim (char *str) {
+    strnltrim(str, strlen(str));
+    return(str);
+}
+
+char *strrtrim (char *str) {
+    strnrtrim(str, strlen(str));
+    return(str);
+}
+
+char *strtrim (char *str) {
+    strntrim(str, strlen(str));
+    return(str);
+}
 

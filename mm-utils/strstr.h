@@ -1,4 +1,4 @@
-/* [ memcpy.h ] - Memory Copy
+/* [ strstr.h ] - locate a substring
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -27,22 +27,16 @@
  * -----------------------------------------------------------------------------
  */
 
-#ifndef _MEMCPY_H_
-#define _MEMCPY_H_
+#ifndef _STRSTR_H_
+#define _STRSTR_H_
 
-#include <stddef.h>
+#include <sys/types.h>
 
-void *  memcpy      (void *dest, const void *src, size_t n);
-void *  memcpy8     (void *dest, const void *src, size_t n);
-void *  memcpy16    (void *dest, const void *src, size_t n);
-void *  memcpy32    (void *dest, const void *src, size_t n);
-void *  memcpy64    (void *dest, const void *src, size_t n);
+char *      strstr      (const char *haystack, const char *needle);
+char *      strrstr     (const char *haystack, const char *needle);
 
-void *  memmove     (void *dest, const void *src, size_t n);
-void *  memmove8    (void *dest, const void *src, size_t n);
-void *  memmove16   (void *dest, const void *src, size_t n);
-void *  memmove32   (void *dest, const void *src, size_t n);
-void *  memmove64   (void *dest, const void *src, size_t n);
+ssize_t     strpos      (const char *haystack, const char *needle);
+ssize_t     strrpos     (const char *haystack, const char *needle);
 
-#endif /* !_MEMCPY_H_ */
+#endif /* !_STRSTR_H_ */
 

@@ -1,4 +1,4 @@
-/* [ memcpy.h ] - Memory Copy
+/* [ strupper.h ] - convert string to upper case
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -27,22 +27,13 @@
  * -----------------------------------------------------------------------------
  */
 
-#ifndef _MEMCPY_H_
-#define _MEMCPY_H_
+#ifndef _STRUPPER_H_
+#define _STRUPPER_H_
 
 #include <stddef.h>
 
-void *  memcpy      (void *dest, const void *src, size_t n);
-void *  memcpy8     (void *dest, const void *src, size_t n);
-void *  memcpy16    (void *dest, const void *src, size_t n);
-void *  memcpy32    (void *dest, const void *src, size_t n);
-void *  memcpy64    (void *dest, const void *src, size_t n);
+char *  strupper     (char *str);
+char *  strnupper    (char *str, size_t n);
 
-void *  memmove     (void *dest, const void *src, size_t n);
-void *  memmove8    (void *dest, const void *src, size_t n);
-void *  memmove16   (void *dest, const void *src, size_t n);
-void *  memmove32   (void *dest, const void *src, size_t n);
-void *  memmove64   (void *dest, const void *src, size_t n);
-
-#endif /* !_MEMCPY_H_ */
+#endif /* !_STRUPPER_H_ */
 

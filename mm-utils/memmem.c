@@ -1,4 +1,4 @@
-/* [ memcpy.h ] - Memory Copy
+/* [ memmem.c ] - scan memory for a submemory
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -27,22 +27,61 @@
  * -----------------------------------------------------------------------------
  */
 
-#ifndef _MEMCPY_H_
-#define _MEMCPY_H_
-
 #include <stddef.h>
+#include <stdint.h>
 
-void *  memcpy      (void *dest, const void *src, size_t n);
-void *  memcpy8     (void *dest, const void *src, size_t n);
-void *  memcpy16    (void *dest, const void *src, size_t n);
-void *  memcpy32    (void *dest, const void *src, size_t n);
-void *  memcpy64    (void *dest, const void *src, size_t n);
+#include "memcmp.h"
 
-void *  memmove     (void *dest, const void *src, size_t n);
-void *  memmove8    (void *dest, const void *src, size_t n);
-void *  memmove16   (void *dest, const void *src, size_t n);
-void *  memmove32   (void *dest, const void *src, size_t n);
-void *  memmove64   (void *dest, const void *src, size_t n);
+void *memmem (const void *haystack,
+              size_t haystack_len,
+              const void *needle,
+              size_t needle_len)
+{
+    register const uint8_t *pend;
+    register const uint8_t *ph;
+    register const uint8_t *pn;
+    register uint8_t c;
 
-#endif /* !_MEMCPY_H_ */
+    if (haystack_len < needle_len || needle_len == 0)
+        return(NULL);
 
+    pn = (const uint8_t *)needle;
+    needle_len--;
+    c = *pn++;
+
+    ph = (const uint8_t *)haystack;
+    pend = ph + haystack_len - needle_len;
+    for (; ph <= pend; ++ph) {
+        if (*ph == c && !memcmp(ph + 1, pn, needle_len))
+            return((void *)ph);
+    }
+
+    return(NULL);
+}
+
+void *memrmem (const void *haystack,
+               size_t haystack_len,
+               const void *needle,
+               size_t needle_len)
+{
+    register const uint8_t *pend;
+    register const uint8_t *ph;
+    register const uint8_t *pn;
+    register uint8_t c;
+
+    if (haystack_len < needle_len || needle_len == 0)
+        return(NULL);
+
+    pn = (const uint8_t *)needle;
+    needle_len--;
+    c = *pn++;
+
+    pend = (const uint8_t *)haystack;
+    ph = pend + haystack_len - needle_len - 1;
+    for (; ph >= pend; --ph) {
+        if (*ph == c && !memcmp(ph + 1, pn, needle_len))
+            return((void *)ph);
+    }
+
+    return(NULL);
+}
