@@ -36,8 +36,7 @@
 #include "sockpoll.h"
 #include "socket.h"
 
-static int __accept (int socket,
-                     void *user_data)
+static int __accept (void *user_data, int socket)
 {
     struct sockaddr_storage address;
     char ip[INET6_ADDRSTRLEN];
@@ -74,17 +73,8 @@ int main (int argc, char **argv) {
 
     socket_str_address(ip, INET6_ADDRSTRLEN, (const struct sockaddr *)&addr);
     printf("Server is Listening on %s\n", ip);
+    sockpoll_exec(sock, NULL, NULL, __accept, 0, NULL, &usock);
 
-#if defined(HAS_SOCKPOLL_EPOLL)
-    printf("Using epoll...\n");
-    sockpoll_epoll(sock, __accept, NULL, NULL, &usock);
-#elif defined(HAS_SOCKPOLL_KQUEUE)
-    printf("Using kqueue...\n");
-    sockpoll_kqueue(sock, __accept, NULL, NULL, &usock);
-#else
-    printf("Using select...\n");
-    sockpoll_select(sock, __accept, NULL, NULL, &usock);
-#endif
     close(sock);
 
     return(0);

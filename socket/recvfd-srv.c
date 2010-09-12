@@ -36,7 +36,7 @@
 #include "sockpoll.h"
 #include "socket.h"
 
-static int __accept (int sock, void *user_data) {
+static int __accept (void *user_data, int sock) {
     int client;
 
     if ((client = socket_unix_accept(sock)) < 0)
@@ -46,8 +46,7 @@ static int __accept (int sock, void *user_data) {
     return(client);
 }
 
-static int __read (int sock, void *user_data)
-{
+static int __read (void *user_data, int sock) {
     ssize_t n;
     int xfd;
 
@@ -57,7 +56,7 @@ static int __read (int sock, void *user_data)
     printf(" - %d is ready to read.\n", sock);
     printf(" - XFD: %d\n", xfd);
 
-    n = send(xfd, "Hello from Unix Server", 22, 0);
+    n = send(xfd, "Hello from Unix Server\n", 23, 0);
     printf("Sended: %ld\n", n);
 
     close(xfd);
@@ -72,17 +71,8 @@ int main (int argc, char **argv) {
         return(1);
 
     printf("Server is Listening...\n");
+    sockpoll_exec(sock, __read, NULL, __accept, 0, NULL, NULL);
 
-#if defined(HAS_SOCKPOLL_EPOLL)
-    printf("Using epoll...\n");
-    sockpoll_epoll(sock, __accept, __read, NULL, NULL);
-#elif defined(HAS_SOCKPOLL_KQUEUE)
-    printf("Using kqueue...\n");
-    sockpoll_kqueue(sock, __accept, __read, NULL, NULL);
-#else
-    printf("Using select...\n");
-    sockpoll_select(sock, __accept, __read, NULL, NULL);
-#endif
     close(sock);
 
     return(0);

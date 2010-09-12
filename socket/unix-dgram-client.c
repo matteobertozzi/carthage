@@ -62,6 +62,7 @@ int main (int argc, char **argv) {
     }
     printf("Send %d\n", n);
 
+    memset(buffer, 0, sizeof(buffer));
     addrlen = sizeof(struct sockaddr_un);
     if ((n = socket_unix_recv(sock, &addr, buffer, 64, 0)) < 0) {
         perror("recvfrom()");

@@ -1,4 +1,4 @@
-/* [ sockpoll.h ] - Sock (Event Loop) Pool
+/* [ sockpoll.c ] - Socket (Event Loop) Pool
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -26,188 +26,111 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  */
-#include <sys/types.h>
-#include <sys/time.h>
-#include <string.h>
+
 #include <unistd.h>
-#include <fcntl.h>
-#include <stdio.h>
-
 #include "sockpoll.h"
-#include "socket.h"
 
-int sockpoll_select (int socket,
-                     socket_accept_t accept_f,
-                     socket_read_t read_f,
-                     int *is_looping,
-                     void *user_data)
-{
-    fd_set fds, rfds;
-    int sd, sdmax;
-    int client;
+static int __sockpoll_read (void *user_data, int sock) {
+    sockpoll_t *sockpoll = (sockpoll_t *)user_data;
 
-    FD_ZERO(&fds);
-    FD_SET(socket, &fds);
-    sdmax = socket;
+    if (sock == sockpoll->sock) {
+        int client;
 
-    while ((is_looping != NULL) ? (*is_looping) : 1) {
-        memcpy(&rfds, &fds, sizeof(fd_set));
-        if (select(sdmax + 1, &rfds, NULL, NULL, NULL) < 0) {
-            perror("select()");
+        if ((client = sockpoll->accept_f(sockpoll->user_data, sock)) < 0) {
+            close(client); /* ?? */
             return(-1);
         }
 
-        for (sd = 0; sd <= sdmax; ++sd) {
-            if (FD_ISSET(sd, &rfds)) {
-                if (sd == socket) {
-                    if ((client = accept_f(socket, user_data)) < 0) {
-                        close(client);
-                        continue;
-                    }
+        iopoll_add(&(sockpoll->iopoll), client);
+    } else {
+        ioread_t read_f = sockpoll->read_f;
 
-                    FD_SET(client, &fds);
-                    if (client > sdmax)
-                        sdmax = client;
-                } else if (!read_f || read_f(sd, user_data) < 0) {
-                    FD_CLR(sd, &fds);
-                    close(sd);
-                }
-            }
+        if (!read_f || read_f(sockpoll->user_data, sock) < 0) {
+            iopoll_remove(&(sockpoll->iopoll), sock);
+            close(sock);
+            return(-2);
         }
     }
 
     return(0);
 }
 
-#ifdef HAS_SOCKPOLL_EPOLL
-#include <sys/epoll.h>
+static int __sockpoll_write (void *user_data, int sock) {
+    sockpoll_t *sockpoll = (sockpoll_t *)user_data;
+    return(sockpoll->write_f(user_data, sock));
+}
 
-int sockpoll_epoll (int socket,
-                    socket_accept_t accept_f,
-                    socket_read_t read_f,
-                    int *is_looping,
-                    void *user_data)
+sockpoll_t *sockpoll_alloc (sockpoll_t *sockpoll,
+                            int server_sock,
+                            ioread_t read_f,
+                            iowrite_t write_f,
+                            socket_accept_t accept_f,
+                            iopoll_backend_type_t type,
+                            int timeout,
+                            int *is_looping,
+                            void *user_data)
 {
-    struct epoll_event events[32];
-    struct epoll_event event;
-    int n, nfds;
-    int client;
-    int epld;
+    iowrite_t sp_write_f = NULL;
 
-    if ((epld = epoll_create(32)) < 0) {
-        perror("epoll_create()");
+    sockpoll->read_f = read_f;
+    if ((sockpoll->write_f = write_f) != NULL)
+        sp_write_f = __sockpoll_write;
+    sockpoll->accept_f = accept_f;
+
+    sockpoll->sock = server_sock;
+    sockpoll->user_data = user_data;
+
+    iopoll_alloc(&(sockpoll->iopoll),
+                        __sockpoll_read,
+                        sp_write_f,
+                        type,
+                        timeout,
+                        is_looping,
+                        sockpoll);
+
+    iopoll_add(&(sockpoll->iopoll), server_sock);
+
+    return(sockpoll);
+}
+
+void sockpoll_free (sockpoll_t *sockpoll) {
+    iopoll_free(&(sockpoll->iopoll));
+}
+
+int sockpoll_add (sockpoll_t *sockpoll, int sock) {
+    return(iopoll_add(&(sockpoll->iopoll), sock));
+}
+
+int sockpoll_remove (sockpoll_t *sockpoll, int sock) {
+    return(iopoll_remove(&(sockpoll->iopoll), sock));
+}
+
+int sockpoll_loop (sockpoll_t *sockpoll) {
+    return(iopoll_loop(&(sockpoll->iopoll)));
+}
+
+int sockpoll_exec (int socket,
+                   ioread_t read_f,
+                   iowrite_t write_f,
+                   socket_accept_t accept_f,
+                   iopoll_backend_type_t type,
+                   int *is_looping,
+                   void *user_data)
+{
+    sockpoll_t poll;
+    int res;
+
+    if (sockpoll_alloc(&poll, socket,
+                       read_f, write_f, accept_f,
+                       type, 0, is_looping, user_data) == NULL)
+    {
         return(-1);
     }
 
-    fcntl(socket, F_SETFL, O_NONBLOCK);
-    event.events = EPOLLIN | EPOLLET;
-    event.data.fd = socket;
+    res = sockpoll_loop(&poll);
 
-    if (epoll_ctl(epld, EPOLL_CTL_ADD, socket, &event) < 0) {
-        perror("epoll_ctl()");
-        close(epld);
-        return(-2);
-    }
+    sockpoll_free(&poll);
 
-    while ((is_looping != NULL) ? (*is_looping) : 1) {
-        if ((nfds = epoll_wait(epld, events, 32, -1)) < 0) {
-            perror("epoll_wait()");
-            close(epld);
-            return(-3);
-        }
-
-        for (n = 0; n < nfds; ++n) {
-            if (events[n].data.fd == socket) {
-                if ((client = accept_f(socket, user_data)) < 0)
-                    continue;
-
-                fcntl(client, F_SETFL, O_NONBLOCK);
-                event.events = EPOLLIN | EPOLLET;
-                event.data.fd = client;
-
-                if (epoll_ctl(epld, EPOLL_CTL_ADD, client, &event) < 0) {
-                    perror("epoll_ctl()");
-                    close(epld);
-                    return(-4);
-                }
-            } else if (!read_f || read_f(events[n].data.fd, user_data) < 0) {
-                epoll_ctl(epld, EPOLL_CTL_DEL, events[n].data.fd, NULL);
-                close(events[n].data.fd);
-            }
-        }
-    }
-
-    close(epld);
-
-    return(0);
+    return(res);
 }
-#endif /* HAS_SOCKPOLL_EPOLL */
-
-#ifdef HAS_SOCKPOLL_KQUEUE
-#include <sys/event.h>
-
-int sockpoll_kqueue (int socket,
-                     socket_accept_t accept_f,
-                     socket_read_t read_f,
-                     int *is_looping,
-                     void *user_data)
-{
-    struct kevent events[32];
-    struct kevent event;
-    int n, nevents;
-    int client;
-    int kq;
-
-    if ((kq = kqueue()) < 0) {
-        perror("kqueue()");
-        return(-1);
-    }
-
-    memset(&event, 0, sizeof(struct kevent));
-    event.ident = socket;
-    event.filter = EVFILT_READ;
-    event.flags = EV_ADD | EV_ENABLE;
-
-    if (kevent(kq, &event, 1, NULL, 0, NULL) < 0) {
-        perror("kevent()");
-        close(kq);
-        return(-2);
-    }
-
-    while ((is_looping != NULL) ? (*is_looping) : 1) {
-        if ((nevents = kevent(kq, NULL, 0, events, 32, NULL)) < 0) {
-            perror("kevent()");
-            close(kq);
-            return(-3);
-        }
-
-        for (n = 0; n < nevents; ++n) {
-            if (events[n].ident == socket) {
-                if ((client = accept_f(socket, user_data)) < 0) {
-                    close(client);
-                    continue;
-                }
-
-                event.ident = client;
-                event.filter = EVFILT_READ;
-                event.flags = EV_ADD | EV_ENABLE;
-                if (kevent(kq, &event, 1, NULL, 0, NULL) < 0) {
-                    perror("kevent()");
-                    close(kq);
-                    return(-4);
-                }
-            } else if (!read_f || read_f(events[n].ident, user_data) < 0) {
-                event.ident = events[n].ident;
-                event.filter = EVFILT_READ;
-                event.flags = EV_DELETE | EV_DISABLE;
-                kevent(kq, &event, 1, NULL, 0, NULL);
-                close(events[n].ident);
-            }
-        }
-    }
-
-    close(kq);
-    return(0);
-}
-#endif /* HAS_SOCKPOLL_KQUEUE */
 

@@ -1,4 +1,4 @@
-/* [ sockpoll.h ] - Sock (Event Loop) Pool
+/* [ sockpoll.h ] - Socket (Event Loop) Pool
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -26,38 +26,43 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  */
-
 #ifndef _SOCKPOLL_H_
 #define _SOCKPOLL_H_
 
-#include <sys/socket.h>
+#include "iopoll.h"
 
-typedef int (*socket_accept_t) (int sock,
-                                void *user_data);
-typedef int (*socket_read_t)   (int sock,
-                                void *user_data);
+typedef int (*socket_accept_t) (void *user_data, int sock);
 
-int     sockpoll_select     (int socket,
-                             socket_accept_t accept_f,
-                             socket_read_t read_f,
-                             int *is_looping,
-                             void *user_data);
+typedef struct _sockpoll {
+    void *          user_data;
+    socket_accept_t accept_f;
+    iowrite_t       write_f;
+    ioread_t        read_f;
+    iopoll_t        iopoll;
+    int             sock;
+} sockpoll_t;
 
-#ifdef HAS_SOCKPOLL_EPOLL
-int     sockpoll_epoll      (int socket,
-                             socket_accept_t accept_f,
-                             socket_read_t read_f,
-                             int *is_looping,
-                             void *user_data);
-#endif /* HAS_SOCKPOLL_EPOLL */
+sockpoll_t *sockpoll_alloc      (sockpoll_t *sockpoll,
+                                 int server_sock,
+                                 ioread_t read_f,
+                                 iowrite_t write_f,
+                                 socket_accept_t accept_f,
+                                 iopoll_backend_type_t type,
+                                 int timeout,
+                                 int *is_looping,
+                                 void *user_data);
+void        sockpoll_free       (sockpoll_t *sockpoll);
+int         sockpoll_add        (sockpoll_t *sockpoll, int sock);
+int         sockpoll_remove     (sockpoll_t *sockpoll, int sock);
+int         sockpoll_loop       (sockpoll_t *sockpoll);
 
-#ifdef HAS_SOCKPOLL_KQUEUE
-int     sockpoll_kqueue     (int socket,
-                             socket_accept_t accept_f,
-                             socket_read_t read_f,
-                             int *is_looping,
-                             void *user_data);
-#endif /* HAS_SOCKPOLL_KQUEUE */
+int         sockpoll_exec       (int socket,
+                                 ioread_t read_f,
+                                 iowrite_t write_f,
+                                 socket_accept_t accept_f,
+                                 iopoll_backend_type_t type,
+                                 int *is_looping,
+                                 void *user_data);
 
 #endif /* !_SOCKPOLL_H_ */
 
