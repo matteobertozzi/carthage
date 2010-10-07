@@ -317,7 +317,6 @@ void hashtable_foreach (const hashtable_t *table,
                         const hashtable_foreach_t func,
                         void *user_data)
 {
-    hashnode_t *next;
     hashnode_t *p;
     size_t size;
 

@@ -314,7 +314,6 @@ void bag_foreach (const bag_t *bag,
                         const bag_foreach_t func,
                         void *user_data)
 {
-    bagnode_t *next;
     bagnode_t *p;
     size_t size;
 

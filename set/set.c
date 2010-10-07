@@ -304,7 +304,6 @@ void set_foreach (const set_t *set,
                         const set_foreach_t func,
                         void *user_data)
 {
-    setnode_t *next;
     setnode_t *p;
     size_t size;
 

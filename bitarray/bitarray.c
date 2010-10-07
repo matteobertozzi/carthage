@@ -40,12 +40,12 @@ static ssize_t __bit_find_first (unsigned char *map,
     if ((offset = (offset & 0x7))) {
         for (; offset < 8U; offset++) {
             if (!!bit_test(p, offset) == value)
-                return(((p - ((unsigned char *)map)) << 3) + offset);
+                return(((p - map) << 3) + offset);
         }
         p++;
     }
 
-    size = (size << 3) - ((p - ((unsigned char *)map)) << 3);
+    size = size - ((p - map) << 3);
     size = (size >> 3) + ((size & 0x7) > 0);
 
     if (size > 0) {
