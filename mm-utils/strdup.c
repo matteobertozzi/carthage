@@ -1,4 +1,4 @@
-/* 
+/* [ strdup.c ] - Duplicate a string
  * -----------------------------------------------------------------------------
  * Copyright (c) 2010, Matteo Bertozzi
  * All rights reserved.
@@ -27,83 +27,68 @@
  * -----------------------------------------------------------------------------
  */
 
-#include <stdio.h>
+#include <stdlib.h>
 
-#include "strupper.h"
-#include "strlower.h"
-#include "strtrim.h"
-#include "strstr.h"
-#include "strcmp.h"
+#include "memcpy.h"
 #include "strlen.h"
-#include "strdup.h"
 
-static void __test_strstr (void) {
-    char haystack[] = "Woo Hello World, Woo this is Haystack";
-    size_t haystack_len;
-    ssize_t x;
+char *strdup (const char *str) {
+    size_t n;
     char *p;
 
-    haystack_len = sizeof(haystack);
+    n = strlen(str);
+    if ((p = (char *)malloc(n)) == NULL)
+        return(NULL);
 
-    p = strstr(haystack, "World");
-    x = strpos(haystack, "World");
-    printf("%2lu %2ld %s\n", p - haystack, x, p);    
+    memcpy(p, str, n);
+    p[n] = '\0';
 
-    p = strstr(haystack, "Woo");
-    x = strpos(haystack, "Woo");
-    printf("%2lu %2ld %s\n", p - haystack, x, p);
-
-    p = strrstr(haystack, "Woo");
-    x = strrpos(haystack, "Woo");
-    printf("%2lu %2ld %s\n", p - haystack, x, p);
-
-    p = strstr(haystack, "thesht");
-    x = strpos(haystack, "thesht");
-    printf("p is NULL %d: %2ld\n", p == NULL, x);
-
-    p = strrstr(haystack, "thesht");
-    x = strrpos(haystack, "thesht");
-    printf("p is NULL %d - %2ld\n", p == NULL, x);
+    return(p);
 }
 
-static void __test_strcase (void) {
-    char s1[] = "HeLlo WoRld! -Th1s 73sT#";
-    char s2[] = "HeLlo WoRld! -Th1s 73sT#";
-    
-    strupper(s1);
-    strlower(s2);
+char *strndup (const char *str, size_t n) {
+    char *p;
 
-    printf("S1 %s\n", s1);
-    printf("S2 %s\n", s2);
-    printf("CASE CMP: %d\n", strcasecmp(s1, s2));
+    if ((p = (char *)malloc(n)) == NULL)
+        return(NULL);
+
+    memcpy(p, str, n);
+    p[n] = '\0';
+
+    return(p);
 }
 
-static void *__test_mmalloc (void *user_data, size_t n) {
-    return(malloc(n));
+char *strcdup (const char *str,
+               void *(*mmalloc) (void *user_data, size_t n),
+               void *user_data)
+{
+    size_t n;
+    char *p;
+
+    n = strlen(str);
+    if ((p = (char *)mmalloc(user_data, n)) == NULL)
+        return(NULL);
+
+    memcpy(p, str, n);
+    p[n] = '\0';
+
+    return(p);
 }
 
-static void __test_strdup (void) {
-    char *s1, *s2;
+char *strncdup (const char *str,
+                size_t n,
+                void *(*mmalloc) (void *user_data, size_t n),
+                void *user_data)
+{
+    char *p;
 
-    s1 = strdup("Hello World");
-    s2 = strndup("Hello World", 5);
+    if ((p = (char *)mmalloc(user_data, n)) == NULL)
+        return(NULL);
 
-    printf("'%s' '%s'\n", s1, s2);
-    free(s1);
-    free(s2);
+    memcpy(p, str, n);
+    p[n] = '\0';
 
-    s1 = strcdup("Hello World", __test_mmalloc, NULL);
-    s2 = strncdup("Hello World", 5, __test_mmalloc, NULL);
-
-    printf("'%s' '%s'\n", s1, s2);
-    free(s1);
-    free(s2);
+    return(p);
 }
 
-int main (int argc, char **argv) {
-    __test_strstr();
-    __test_strcase();
-    __test_strdup();
-    return(0);
-}
 
