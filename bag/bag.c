@@ -38,7 +38,7 @@
 #define __mmalloc(bag, n)    ((bag)->alk->alloc(__mmalk_data(bag), (n)))
 #define __mmfree(bag, ptr)   ((bag)->alk->free(__mmalk_data(bag), (ptr)))
 
-#define __bucket_size(n)       (sizeof(bagnode_t) * (n))
+#define __bucket_size(n)       (sizeof(bagnode_t *) * (n))
 #define __bucket_alloc(t, n)   ((bagnode_t **) __mmalloc(t, __bucket_size(n)))
 
 struct _bag_node {
@@ -131,7 +131,6 @@ static int __bag_resize (bag_t *bag,
     bagnode_t **bucket;
     bagnode_t *next;
     bagnode_t *p;
-    size_t used;
     size_t size;
 
     /* Round up to size a power of two */
@@ -139,18 +138,20 @@ static int __bag_resize (bag_t *bag,
 
     /* Store old bucket and sizes */
     size = bag->size;
-    used = bag->used;
     bucket = bag->bucket;
 
     /* Allocate new bucket */
     bag->size = new_size;
-    if ((bag->bucket = __bucket_alloc(bag, new_size)) == NULL)
+    if ((bag->bucket = __bucket_alloc(bag, new_size)) == NULL) {
+        bag->bucket = bucket;
+        bag->size = size;
         return(-1);
+    }
 
     /* Fill new bucket with old nodes */
     memset(bag->bucket, 0, __bucket_size(new_size));
-    while (used--) {
-        for (p = bucket[used]; p != NULL; p = next) {
+    while (size--) {
+        for (p = bucket[size]; p != NULL; p = next) {
             next = p->next;
 
             *__bagnode_lookup(bag, p->key) = p;

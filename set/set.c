@@ -38,7 +38,7 @@
 #define __mmalloc(set, n)    ((set)->alk->alloc(__mmalk_data(set), (n)))
 #define __mmfree(set, ptr)   ((set)->alk->free(__mmalk_data(set), (ptr)))
 
-#define __bucket_size(n)       (sizeof(setnode_t) * (n))
+#define __bucket_size(n)       (sizeof(setnode_t *) * (n))
 #define __bucket_alloc(t, n)   ((setnode_t **) __mmalloc(t, __bucket_size(n)))
 
 struct _set_node {
@@ -129,7 +129,6 @@ static int __set_resize (set_t *set,
     setnode_t **bucket;
     setnode_t *next;
     setnode_t *p;
-    size_t used;
     size_t size;
 
     /* Round up to size a power of two */
@@ -137,18 +136,20 @@ static int __set_resize (set_t *set,
 
     /* Store old bucket and sizes */
     size = set->size;
-    used = set->used;
     bucket = set->bucket;
 
     /* Allocate new bucket */
     set->size = new_size;
-    if ((set->bucket = __bucket_alloc(set, new_size)) == NULL)
+    if ((set->bucket = __bucket_alloc(set, new_size)) == NULL) {
+        set->bucket = bucket;
+        set->size = size;
         return(-1);
+    }
 
     /* Fill new bucket with old nodes */
     memset(set->bucket, 0, __bucket_size(new_size));
-    while (used--) {
-        for (p = bucket[used]; p != NULL; p = next) {
+    while (size--) {
+        for (p = bucket[size]; p != NULL; p = next) {
             next = p->next;
 
             *__setnode_lookup(set, p->key) = p;

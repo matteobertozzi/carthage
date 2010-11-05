@@ -38,7 +38,7 @@
 #define __mmalloc(table, n)    ((table)->alk->alloc(__mmalk_data(table), (n)))
 #define __mmfree(table, ptr)   ((table)->alk->free(__mmalk_data(table), (ptr)))
 
-#define __bucket_size(n)       (sizeof(hashnode_t) * (n))
+#define __bucket_size(n)       (sizeof(hashnode_t *) * (n))
 #define __bucket_alloc(t, n)   ((hashnode_t **) __mmalloc(t, __bucket_size(n)))
 
 struct _hash_node {
@@ -135,7 +135,6 @@ static int __hashtable_resize (hashtable_t *table,
     hashnode_t **bucket;
     hashnode_t *next;
     hashnode_t *p;
-    size_t used;
     size_t size;
 
     /* Round up to size a power of two */
@@ -143,18 +142,20 @@ static int __hashtable_resize (hashtable_t *table,
 
     /* Store old bucket and sizes */
     size = table->size;
-    used = table->used;
     bucket = table->bucket;
 
     /* Allocate new bucket */
     table->size = new_size;
-    if ((table->bucket = __bucket_alloc(table, new_size)) == NULL)
+    if ((table->bucket = __bucket_alloc(table, new_size)) == NULL) {
+        table->bucket = bucket;
+        table->size = size;
         return(-1);
+    }
 
     /* Fill new bucket with old nodes */
     memset(table->bucket, 0, __bucket_size(new_size));
-    while (used--) {
-        for (p = bucket[used]; p != NULL; p = next) {
+    while (size--) {
+        for (p = bucket[size]; p != NULL; p = next) {
             next = p->next;
 
             *__hashnode_lookup(table, p->key) = p;

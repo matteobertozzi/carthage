@@ -46,6 +46,7 @@ static void __print_bitarray (bitarray_t *array) {
                                    !!(*p & __BITMASK(5)),
                                    !!(*p & __BITMASK(6)),
                                    !!(*p & __BITMASK(7)));
+        p++;
     }
     printf("\n");
 }
