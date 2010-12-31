@@ -1975,6 +1975,13 @@ int btree_open (btree_t *btree,
 int btree_close (btree_t *btree) {
     if (btree_sync(btree) < 0)
         return(-1);
+
+    /* Free In-Memory Nodes */
+    if (btree->root != NULL) {
+        __btree_mem_nodes_release(btree, btree->root);
+        btree->root = NULL;
+    }
+
     __btcache_close(btree, &(btree->cache));
     return(0);
 }
