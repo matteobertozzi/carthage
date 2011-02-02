@@ -1,17 +1,18 @@
-                      __  .__                           
-  ____ _____ ________/  |_|  |__ _____     ____   ____  
-_/ ___\\__  \\_  __ \   __\  |  \\__  \   / ___\_/ __ \ 
-\  \___ / __ \|  | \/|  | |   Y  \/ __ \_/ /_/  >  ___/ 
+                      __  .__
+  ____ _____ ________/  |_|  |__ _____     ____   ____
+_/ ___\\__  \\_  __ \   __\  |  \\__  \   / ___\_/ __ \
+\  \___ / __ \|  | \/|  | |   Y  \/ __ \_/ /_/  >  ___/
  \___  >____  /__|   |__| |___|  (____  /\___  / \___  >
-     \/     \/ Th30z           \/     \//_____/      \/ 
+     \/     \/ Th30z           \/     \//_____/      \/
 
 Author: Matteo Bertozzi <theo.bertozzi@gmail.com>
 License: BSD
 
-This repository contains reusable Data Structure 
+This repository contains reusable Data Structure
 and Utils written in C.
 
  - Memory Pool
+ - BTree
  - COW Mem Block
  - Hash Table, Set, Bag, Queue
  - Fast memcpy(), memset(), memcmp(), memswap(), strlen()
@@ -21,6 +22,7 @@ and Utils written in C.
  - Worker Queue (pthread)
  - Sort/Merge Utils
  - Socket (TCP, UDP, Unix and kqueue epoll, select poller)
+ - Stream, (fd, file, ...)
  - ...
 
 Copyright (c) 2010, Matteo Bertozzi
